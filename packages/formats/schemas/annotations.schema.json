@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kuraso.org/schemas/v0.1/annotations.schema.json",
+  "title": "Kuraso Paper Annotations (W3C Web Annotation Compatible)",
+  "description": "Stored at <Library>/papers/<slug>/annotations.json. Dual-anchored (TextQuoteSelector + TextPositionSelector + PdfRectSelector) so highlights work in both PDF view and future Clean Reading Mode.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "coordinateSpace", "annotations"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "coordinateSpace": {
+      "type": "string",
+      "const": "pdf-cropbox-points-bl-unrotated"
+    },
+    "annotations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "type", "color", "tags", "target", "created", "modified"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^ann_[A-Za-z0-9_-]+$" },
+          "type": { "type": "string", "enum": ["highlight", "underline", "strikethrough", "note"] },
+          "color": { "type": "string", "enum": ["yellow", "green", "blue", "red", "purple"] },
+          "label": {
+            "type": ["string", "null"],
+            "description": "Semantic label (e.g. key-idea, method, result, limitation, to-cite)"
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+          },
+          "note": { "type": ["string", "null"], "description": "Optional Markdown margin note" },
+          "target": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["selector"],
+            "properties": {
+              "paragraph": {
+                "type": ["string", "null"],
+                "pattern": "^P[1-9][0-9]*$"
+              },
+              "selector": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["type", "exact"],
+                      "properties": {
+                        "type": { "const": "TextQuoteSelector" },
+                        "exact": { "type": "string" },
+                        "prefix": { "type": "string" },
+                        "suffix": { "type": "string" }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["type", "start", "end"],
+                      "properties": {
+                        "type": { "const": "TextPositionSelector" },
+                        "start": { "type": "integer", "minimum": 0 },
+                        "end": { "type": "integer", "minimum": 0 }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["type", "anchors"],
+                      "properties": {
+                        "type": { "const": "PdfRectSelector" },
+                        "anchors": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": ["page", "rect"],
+                            "properties": {
+                              "page": { "type": "integer", "minimum": 1 },
+                              "rect": {
+                                "type": "array",
+                                "prefixItems": [
+                                  { "type": "number" },
+                                  { "type": "number" },
+                                  { "type": "number" },
+                                  { "type": "number" }
+                                ],
+                                "minItems": 4,
+                                "maxItems": 4
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "created": { "type": "string", "format": "date-time" },
+          "modified": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}

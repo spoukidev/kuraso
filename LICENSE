@@ -1,0 +1,14 @@
+Kuraso Desktop Application
+Copyright (C) 2026 Kuraso Contributors
+
+SPDX-License-Identifier: GPL-3.0-or-later
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+
+See https://www.gnu.org/licenses/gpl-3.0.txt for the full license text.
+
+Note: File-format schemas, SDKs, and importer/exporter libraries in
+`packages/formats` are licensed separately under the MIT License.

@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kuraso.org/schemas/v0.1/meta.schema.json",
+  "title": "Kuraso Paper Metadata",
+  "description": "Stored at <Library>/papers/<slug>/meta.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "slug", "title", "authors", "fileHash", "status", "scanned", "tags", "addedAt", "updatedAt"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "slug": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "title": { "type": "string", "minLength": 1 },
+    "authors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "orcid": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "year": { "type": ["integer", "null"], "minimum": 1400, "maximum": 2100 },
+    "venue": { "type": ["string", "null"] },
+    "doi": { "type": ["string", "null"] },
+    "arxivId": { "type": ["string", "null"] },
+    "url": { "type": ["string", "null"] },
+    "abstract": { "type": ["string", "null"] },
+    "language": { "type": ["string", "null"], "description": "BCP-47 language tag (e.g. en, fr, ar)" },
+    "pageCount": { "type": ["integer", "null"], "minimum": 1 },
+    "fileHash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "SHA-256 hash of paper.pdf for duplicate detection"
+    },
+    "scanned": {
+      "type": "boolean",
+      "description": "True when paper.pdf has no selectable text layer"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["to-read", "reading", "read", "skimmed", "important"]
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "readingPosition": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["page", "scrollRatio"],
+      "properties": {
+        "page": { "type": "integer", "minimum": 1 },
+        "scrollRatio": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "addedAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "readAt": { "type": ["string", "null"], "format": "date-time" }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "description": "Manifest of open-access papers for Kuraso's 200-paper parsing & heading benchmark. PDFs are fetched locally by DOI/arXiv ID and never committed.",
+  "targetCount": 200,
+  "categories": {
+    "arxiv-two-column": 60,
+    "arxiv-single-column": 30,
+    "ieee-acm-conference": 40,
+    "springer-elsevier-oa": 30,
+    "theses-and-reports": 20,
+    "multilingual-fr-ar": 10,
+    "edge-cases-rotated-cropbox-scanned": 10
+  },
+  "seedPapers": [
+    {
+      "id": "attention-2017",
+      "arxivId": "1706.03762",
+      "category": "arxiv-single-column",
+      "language": "en",
+      "expectedTopHeadings": ["Abstract", "Introduction", "Background", "Model Architecture", "Why Self-Attention", "Training", "Results", "Conclusion"]
+    },
+    {
+      "id": "resnet-2015",
+      "arxivId": "1512.03385",
+      "category": "arxiv-two-column",
+      "language": "en",
+      "expectedTopHeadings": ["Abstract", "Introduction", "Related Work", "Deep Residual Learning", "Experiments"]
+    }
+  ]
+}

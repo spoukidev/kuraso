@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kuraso.org/schemas/v0.1/kuraso-library.schema.json",
+  "title": "Kuraso Library Marker",
+  "description": "Root marker file stored at <Library>/kuraso-library.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["libraryId", "formatVersion", "createdAt"],
+  "properties": {
+    "libraryId": {
+      "type": "string",
+      "minLength": 8,
+      "description": "Stable unique identifier for this Kuraso library (e.g. ULID or UUID)"
+    },
+    "formatVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "SemVer of the on-disk file format (e.g. 0.1.0)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Optional display name for the library"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

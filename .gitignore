@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.turbo/
+apps/desktop/src-tauri/target/
+target/
+*.tsbuildinfo
+
+# Tauri & local binaries
+apps/desktop/src-tauri/resources/pdfium/
+*.AppImage
+*.dmg
+*.msi
+*.exe
+
+# Local data & env
+.env
+.env.local
+.env.*.local
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# OS & Editors
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*

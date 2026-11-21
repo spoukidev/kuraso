@@ -1,0 +1,13 @@
+[package]
+name = "kuraso-desktop"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+kuraso-ai = { path = "../../../crates/kuraso-ai" }
+kuraso-index = { path = "../../../crates/kuraso-index" }
+kuraso-library = { path = "../../../crates/kuraso-library" }
+kuraso-pdf = { path = "../../../crates/kuraso-pdf" }
+serde.workspace = true
+serde_json.workspace = true

@@ -1,0 +1,25 @@
+{
+  "name": "kuraso-monorepo",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Kuraso — Open-source, local-first reading workspace for students and researchers",
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "test:formats": "node --test packages/formats/test/*.test.mjs",
+    "test:reader": "node --test packages/reader/test/*.test.mjs",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}

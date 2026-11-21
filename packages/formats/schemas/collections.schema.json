@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kuraso.org/schemas/v0.1/collections.schema.json",
+  "title": "Kuraso Collections Tree",
+  "description": "Stored at <Library>/collections.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "collections"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "collections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "parentId", "paperIds", "createdAt", "updatedAt"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "parentId": { "type": ["string", "null"] },
+          "color": { "type": ["string", "null"] },
+          "icon": { "type": ["string", "null"] },
+          "localAiOnly": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, papers in this collection cannot be sent to cloud AI providers"
+          },
+          "paperIds": {
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+          },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}
