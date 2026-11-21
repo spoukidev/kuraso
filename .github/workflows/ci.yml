@@ -6,8 +6,8 @@ on:
   pull_request:
 
 jobs:
-  formats-and-reader:
-    name: Formats & Reader (${{ matrix.os }})
+  frontend:
+    name: Frontend & Tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -15,13 +15,25 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install
       - name: Run format schema tests
         run: npm run test:formats
-      - name: Run PDF coordinate conversion tests
+      - name: Run reader coordinate & search tests
         run: npm run test:reader
+      - name: Typecheck workspace
+        run: pnpm typecheck
+      - name: Build desktop frontend
+        run: pnpm build
+      - name: Dry-run PDFium fetch script
+        run: node scripts/fetch-pdfium.mjs --dry-run
 
   rust-workspace:
     name: Rust Workspace (${{ matrix.os }})
@@ -32,6 +44,11 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
+      - name: Install Linux Tauri 2 system dependencies (WebKitGTK)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
