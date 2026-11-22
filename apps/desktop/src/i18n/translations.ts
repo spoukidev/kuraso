@@ -1,0 +1,92 @@
+export type UILanguage = "en" | "fr";
+
+const LANG_STORAGE_KEY = "kuraso:ui-language:v1";
+
+export function loadUILanguage(): UILanguage {
+  try {
+    const val = localStorage.getItem(LANG_STORAGE_KEY);
+    if (val === "fr" || val === "en") return val;
+  } catch {
+    // Ignore.
+  }
+  return "en";
+}
+
+export function saveUILanguage(lang: UILanguage): void {
+  try {
+    localStorage.setItem(LANG_STORAGE_KEY, lang);
+  } catch {
+    // Ignore.
+  }
+}
+
+export const TRANSLATIONS = {
+  en: {
+    searchOrCommand: "Search or run a command…",
+    importPdf: "Import",
+    doiArxiv: "DOI / arXiv",
+    library: "Library",
+    allPapers: "All Papers",
+    inbox: "Inbox",
+    reading: "Reading",
+    important: "Important",
+    collections: "Collections",
+    openTabs: "Open Tabs",
+    outline: "Outline",
+    highlights: "Highlights",
+    notes: "Notes",
+    ai: "AI",
+    exportMd: "Export Markdown",
+    exportBib: "Export BibTeX",
+    onboardingTitle: "Welcome to Kuraso",
+    onboardingSubtitle: "A calm, local-first reading workspace for your research papers.",
+    chooseLanguage: "Interface language",
+    chooseAiMode: "How do you want to use AI?",
+    freeAiOption: "Free AI, no credit card (Recommended for students)",
+    freeAiDesc: "Google AI Studio (Gemini free tier), Groq, or OpenRouter :free — connect your free key in 1 minute.",
+    paidAiOption: "Use my paid API key",
+    paidAiDesc: "Anthropic (Claude), OpenAI, or any OpenAI-compatible provider.",
+    univAiOption: "My university's AI gateway",
+    univAiDesc: "Connect a self-hosted or institutional OpenAI-compatible URL.",
+    localAiOption: "Free local AI (Ollama, offline)",
+    localAiDesc: "Runs completely on your machine with zero cloud requests.",
+    noAiOption: "No AI for now",
+    noAiDesc: "Read, highlight, take Markdown notes, and export BibTeX completely offline.",
+    lowRamWarning: "Your device appears to have under 8 GB RAM — local 7–8B models may be slow. Consider a free cloud tier above.",
+    finishSetup: "Open Kuraso",
+  },
+  fr: {
+    searchOrCommand: "Rechercher ou lancer une commande…",
+    importPdf: "Importer",
+    doiArxiv: "DOI / arXiv",
+    library: "Bibliothèque",
+    allPapers: "Tous les articles",
+    inbox: "Boîte de réception",
+    reading: "En cours",
+    important: "Importants",
+    collections: "Collections",
+    openTabs: "Onglets ouverts",
+    outline: "Plan",
+    highlights: "Surlignages",
+    notes: "Notes",
+    ai: "IA",
+    exportMd: "Exporter Markdown",
+    exportBib: "Exporter BibTeX",
+    onboardingTitle: "Bienvenue dans Kuraso",
+    onboardingSubtitle: "Un espace calme et local-first pour lire vos articles et garder vos notes.",
+    chooseLanguage: "Langue de l’interface",
+    chooseAiMode: "Comment souhaitez-vous utiliser l’IA ?",
+    freeAiOption: "IA gratuite, sans carte bancaire (Recommandé)",
+    freeAiDesc: "Google AI Studio (Gemini gratuit), Groq ou OpenRouter :free — configurez votre clé gratuite en 1 minute.",
+    paidAiOption: "Utiliser ma clé API payante",
+    paidAiDesc: "Anthropic (Claude), OpenAI ou tout fournisseur compatible OpenAI.",
+    univAiOption: "Passerelle IA de mon université",
+    univAiDesc: "Connectez une URL compatible OpenAI hébergée par votre université.",
+    localAiOption: "IA locale gratuite (Ollama, hors-ligne)",
+    localAiDesc: "Tourne entièrement sur votre ordinateur, sans connexion internet.",
+    noAiOption: "Pas d’IA pour le moment",
+    noAiDesc: "Lisez, surlignez, prenez des notes Markdown et exportez en BibTeX hors-ligne.",
+    lowRamWarning: "Votre appareil semble avoir moins de 8 Go de RAM — les modèles locaux 7–8B peuvent être lents. Essayez une offre gratuite ci-dessus.",
+    finishSetup: "Ouvrir Kuraso",
+  },
+} as const;

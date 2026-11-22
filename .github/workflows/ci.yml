@@ -32,8 +32,10 @@ jobs:
         run: npm run test:importers
       - name: Run W3C annotation & remapping tests
         run: npm run test:annotations
-      - name: Run grounded AI citation verification tests
+      - name: Run grounded AI & offline isolation tests
         run: npm run test:ai
+      - name: Run Markdown & BibTeX exporter tests
+        run: npm run test:exporters
       - name: Typecheck workspace
         run: pnpm typecheck
       - name: Build desktop frontend

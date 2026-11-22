@@ -865,3 +865,25 @@ body,
   font-size: 0.66rem;
   font-weight: 600;
 }
+
+/* Phase 5: Onboarding & Export */
+.kuraso-onboarding-option {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding-inline: 12px;
+  padding-block: 10px;
+  border: 1px solid var(--kuraso-border);
+  border-radius: 8px;
+  background-color: var(--kuraso-bg-surface);
+  color: var(--kuraso-text-primary);
+  text-align: start;
+  cursor: pointer;
+  font-size: 0.84rem;
+}
+
+.kuraso-onboarding-option[data-active="true"] {
+  border-color: var(--kuraso-accent);
+  background-color: var(--kuraso-accent-soft);
+}

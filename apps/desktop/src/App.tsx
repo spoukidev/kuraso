@@ -9,10 +9,17 @@ import {
 } from "@kuraso/formats";
 import type { FetchedMetadata } from "@kuraso/importers";
 import {
+  exportCollectionToBibtex,
+  exportPaperToBibtex,
+  exportPaperToMarkdown,
+} from "@kuraso/exporters";
+import {
   BookOpen,
+  Download,
   FileText,
   Folder,
   FolderOpen,
+  Globe,
   Inbox,
   Library as LibraryIcon,
   Moon,
@@ -34,11 +41,20 @@ import { AnnotationPanel } from "./components/AnnotationPanel";
 import { NotesEditor } from "./components/NotesEditor";
 import { AISettingsModal } from "./components/AISettingsModal";
 import { AssistantPanel } from "./components/AssistantPanel";
+import { OnboardingModal, type OnboardingAIChoice } from "./components/OnboardingModal";
 import {
   loadAISettings,
+  loadCachedSummary,
+  PROVIDER_PRESETS,
   saveAISettings,
   type AISettings,
 } from "./state/aiStore";
+import {
+  loadUILanguage,
+  saveUILanguage,
+  TRANSLATIONS,
+  type UILanguage,
+} from "./i18n/translations";
 import {
   loadSavedPositions,
   loadSavedTheme,
@@ -71,8 +87,31 @@ type LibraryFilter =
   | { kind: "status"; status: "to-read" | "reading" | "important" }
   | { kind: "collection"; collectionId: string };
 
+const ONBOARDING_DONE_KEY = "kuraso:onboarding-done:v1";
+
+function downloadTextFile(filename: string, content: string, mime = "text/plain;charset=utf-8") {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export function App() {
   const [theme, setTheme] = useState<KurasoTheme>(() => loadSavedTheme());
+  const [uiLang, setUiLang] = useState<UILanguage>(() => loadUILanguage());
+  const [onboardingOpen, setOnboardingOpen] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(ONBOARDING_DONE_KEY) !== "1";
+    } catch {
+      return false;
+    }
+  });
+  const t = TRANSLATIONS[uiLang];
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const [rightTab, setRightTab] = useState<RightTab>("outline");
@@ -117,6 +156,11 @@ export function App() {
     document.documentElement.setAttribute("data-theme", theme);
     saveTheme(theme);
   }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.lang = uiLang;
+    saveUILanguage(uiLang);
+  }, [uiLang]);
 
   useEffect(() => {
     saveLibraryPapers(papers);
@@ -436,6 +480,84 @@ export function App() {
     return collections.find((c) => c.id === libraryFilter.collectionId)?.name ?? "Collection";
   }, [libraryFilter, collections]);
 
+  const handleExportMarkdown = useCallback(() => {
+    const activePaper = activeTabId ? papers.find((p) => p.id === activeTabId) : null;
+    if (!activePaper) {
+      showToast("Open a paper first to export its Markdown notes.");
+      return;
+    }
+    const md = exportPaperToMarkdown({
+      paper: activePaper,
+      annotations: annotationsByPaper[activePaper.id] ?? [],
+      notesMarkdown: notesByPaper[activePaper.id] ?? "",
+      summary: loadCachedSummary(activePaper.id),
+    });
+    downloadTextFile(`${activePaper.slug}.md`, md, "text/markdown;charset=utf-8");
+    showToast(`Exported ${activePaper.slug}.md`);
+  }, [activeTabId, papers, annotationsByPaper, notesByPaper, showToast]);
+
+  const handleExportBibtex = useCallback(() => {
+    if (centerMode === "reader" && activeTabId) {
+      const paper = papers.find((p) => p.id === activeTabId);
+      if (paper) {
+        const bib = exportPaperToBibtex(paper);
+        downloadTextFile(`${paper.slug}.bib`, bib, "application/x-bibtex;charset=utf-8");
+        showToast(`Exported ${paper.slug}.bib`);
+        return;
+      }
+    }
+    if (visiblePapers.length === 0) {
+      showToast("No papers to export to BibTeX.");
+      return;
+    }
+    const bib = exportCollectionToBibtex(visiblePapers);
+    downloadTextFile("kuraso-references.bib", bib, "application/x-bibtex;charset=utf-8");
+    showToast(`Exported ${visiblePapers.length} BibTeX entries.`);
+  }, [centerMode, activeTabId, papers, visiblePapers, showToast]);
+
+  const handleOnboardingComplete = useCallback(
+    (choice: OnboardingAIChoice) => {
+      try {
+        localStorage.setItem(ONBOARDING_DONE_KEY, "1");
+      } catch {
+        // Ignore.
+      }
+      setOnboardingOpen(false);
+      if (choice === "none") {
+        const off: AISettings = { ...aiSettings, enabled: false };
+        setAiSettings(off);
+        saveAISettings(off);
+        return;
+      }
+      const presetId =
+        choice === "free-cloud"
+          ? "google-ai-studio"
+          : choice === "local"
+            ? "ollama"
+            : choice === "university"
+              ? "custom-openai"
+              : "anthropic";
+      const preset = PROVIDER_PRESETS.find((p) => p.id === presetId);
+      if (preset) {
+        const next: AISettings = {
+          ...aiSettings,
+          enabled: true,
+          providerId: preset.id,
+          kind: preset.kind,
+          label: preset.label,
+          baseUrl: preset.baseUrl,
+          model: preset.defaultModel || aiSettings.model,
+          local: Boolean(preset.local),
+          answerLanguage: uiLang,
+        };
+        setAiSettings(next);
+        saveAISettings(next);
+      }
+      setAiSettingsOpen(true);
+    },
+    [aiSettings, uiLang],
+  );
+
   // Global keyboard shortcuts
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -495,6 +617,21 @@ export function App() {
         run: () => setCenterMode("library"),
       },
       {
+        id: "export-md",
+        label: t.exportMd,
+        run: handleExportMarkdown,
+      },
+      {
+        id: "export-bib",
+        label: t.exportBib,
+        run: handleExportBibtex,
+      },
+      {
+        id: "switch-lang",
+        label: `Switch UI language (${uiLang === "en" ? "Français" : "English"})`,
+        run: () => setUiLang((l) => (l === "en" ? "fr" : "en")),
+      },
+      {
         id: "ai-settings",
         label: "Configure AI provider (BYOK / Ollama)…",
         run: () => setAiSettingsOpen(true),
@@ -535,7 +672,19 @@ export function App() {
           ]
         : []),
     ],
-    [theme, leftOpen, rightOpen, activeTab, cycleTheme, updateActiveTab],
+    [
+      theme,
+      leftOpen,
+      rightOpen,
+      activeTab,
+      cycleTheme,
+      updateActiveTab,
+      t.exportMd,
+      t.exportBib,
+      handleExportMarkdown,
+      handleExportBibtex,
+      uiLang,
+    ],
   );
 
   return (
@@ -586,7 +735,7 @@ export function App() {
         >
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             <Search size={14} />
-            <span>Search or run a command…</span>
+            <span>{t.searchOrCommand}</span>
           </span>
           <kbd className="kuraso-kbd">Ctrl+K</kbd>
         </button>
@@ -595,11 +744,29 @@ export function App() {
           <button
             type="button"
             className="kuraso-icon-btn"
+            title={t.exportMd}
+            onClick={handleExportMarkdown}
+          >
+            <Download size={15} />
+            <span>.md</span>
+          </button>
+          <button
+            type="button"
+            className="kuraso-icon-btn"
+            title={t.exportBib}
+            onClick={handleExportBibtex}
+          >
+            <Download size={15} />
+            <span>.bib</span>
+          </button>
+          <button
+            type="button"
+            className="kuraso-icon-btn"
             title="Import by DOI or arXiv ID"
             onClick={() => setImportModalOpen(true)}
           >
             <Plus size={15} />
-            <span>DOI / arXiv</span>
+            <span>{t.doiArxiv}</span>
           </button>
           <button
             type="button"
@@ -608,7 +775,16 @@ export function App() {
             onClick={() => fileInputRef.current?.click()}
           >
             <FolderOpen size={16} />
-            <span>Import</span>
+            <span>{t.importPdf}</span>
+          </button>
+          <button
+            type="button"
+            className="kuraso-icon-btn"
+            title="Switch interface language (EN / FR)"
+            onClick={() => setUiLang((l) => (l === "en" ? "fr" : "en"))}
+          >
+            <Globe size={15} />
+            <span>{uiLang.toUpperCase()}</span>
           </button>
           <button
             type="button"
@@ -831,7 +1007,7 @@ export function App() {
                 paddingInline: 8,
               }}
             >
-              Format v{KURASO_FORMAT_VERSION} · Phase 4
+              Format v{KURASO_FORMAT_VERSION} · v0.1 Alpha
             </div>
           </aside>
         )}
@@ -1083,6 +1259,13 @@ export function App() {
           });
           showToast("API key removed from session.");
         }}
+      />
+
+      <OnboardingModal
+        open={onboardingOpen}
+        language={uiLang}
+        onLanguageChange={setUiLang}
+        onComplete={handleOnboardingComplete}
       />
 
       {toast && (

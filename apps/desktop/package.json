@@ -12,6 +12,7 @@
   "dependencies": {
     "@kuraso/ai": "workspace:*",
     "@kuraso/annotations": "workspace:*",
+    "@kuraso/exporters": "workspace:*",
     "@kuraso/formats": "workspace:*",
     "@kuraso/importers": "workspace:*",
     "@kuraso/reader": "workspace:*",
