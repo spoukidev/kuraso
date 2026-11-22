@@ -50,11 +50,12 @@ import {
   type AISettings,
 } from "./state/aiStore";
 import {
+  getLanguageDirection,
   loadUILanguage,
   saveUILanguage,
   TRANSLATIONS,
   type UILanguage,
-} from "./i18n/translations";
+} from "./i18n/translations.mjs";
 import {
   loadSavedPositions,
   loadSavedTheme,
@@ -159,6 +160,7 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.lang = uiLang;
+    document.documentElement.dir = getLanguageDirection(uiLang);
     saveUILanguage(uiLang);
   }, [uiLang]);
 
@@ -627,9 +629,19 @@ export function App() {
         run: handleExportBibtex,
       },
       {
-        id: "switch-lang",
-        label: `Switch UI language (${uiLang === "en" ? "Français" : "English"})`,
-        run: () => setUiLang((l) => (l === "en" ? "fr" : "en")),
+        id: "switch-lang-en",
+        label: "Language: English (LTR)",
+        run: () => setUiLang("en"),
+      },
+      {
+        id: "switch-lang-fr",
+        label: "Langue : Français (LTR)",
+        run: () => setUiLang("fr"),
+      },
+      {
+        id: "switch-lang-ar",
+        label: "اللغة: العربية (RTL)",
+        run: () => setUiLang("ar"),
       },
       {
         id: "ai-settings",
@@ -780,11 +792,11 @@ export function App() {
           <button
             type="button"
             className="kuraso-icon-btn"
-            title="Switch interface language (EN / FR)"
-            onClick={() => setUiLang((l) => (l === "en" ? "fr" : "en"))}
+            title="Switch interface language (EN / FR / العربية)"
+            onClick={() => setUiLang((l) => (l === "en" ? "fr" : l === "fr" ? "ar" : "en"))}
           >
             <Globe size={15} />
-            <span>{uiLang.toUpperCase()}</span>
+            <span>{t.langBadge}</span>
           </button>
           <button
             type="button"
@@ -819,7 +831,7 @@ export function App() {
         {leftOpen && (
           <aside className="kuraso-sidebar-left" aria-label="Library">
             <div>
-              <div className="kuraso-section-label">Library</div>
+              <div className="kuraso-section-label">{t.library}</div>
               <button
                 type="button"
                 className="kuraso-nav-item"
@@ -830,7 +842,9 @@ export function App() {
                 }}
               >
                 <LibraryIcon size={15} />
-                <span>All Papers ({papers.length})</span>
+                <span>
+                  {t.allPapers} ({papers.length})
+                </span>
               </button>
               <button
                 type="button"
@@ -848,7 +862,7 @@ export function App() {
                 }}
               >
                 <Inbox size={15} />
-                <span>Inbox</span>
+                <span>{t.inbox}</span>
               </button>
               <button
                 type="button"
@@ -866,7 +880,7 @@ export function App() {
                 }}
               >
                 <BookOpen size={15} />
-                <span>Reading</span>
+                <span>{t.reading}</span>
               </button>
               <button
                 type="button"
@@ -884,7 +898,7 @@ export function App() {
                 }}
               >
                 <Star size={15} />
-                <span>Important</span>
+                <span>{t.important}</span>
               </button>
             </div>
 
@@ -898,7 +912,7 @@ export function App() {
                 }}
               >
                 <span className="kuraso-section-label" style={{ margin: 0 }}>
-                  Collections
+                  {t.collections}
                 </span>
                 <button
                   type="button"
@@ -1007,7 +1021,7 @@ export function App() {
                 paddingInline: 8,
               }}
             >
-              Format v{KURASO_FORMAT_VERSION} · v0.1 Alpha
+              Format v{KURASO_FORMAT_VERSION} · v0.2
             </div>
           </aside>
         )}
@@ -1104,7 +1118,7 @@ export function App() {
                 data-active={rightTab === "outline" ? "true" : "false"}
                 onClick={() => setRightTab("outline")}
               >
-                Outline
+                {t.outline}
               </button>
               <button
                 type="button"
@@ -1112,7 +1126,7 @@ export function App() {
                 data-active={rightTab === "annotations" ? "true" : "false"}
                 onClick={() => setRightTab("annotations")}
               >
-                Highlights ({activeAnnotations.length})
+                {t.highlights} ({activeAnnotations.length})
               </button>
               <button
                 type="button"
@@ -1120,7 +1134,7 @@ export function App() {
                 data-active={rightTab === "notes" ? "true" : "false"}
                 onClick={() => setRightTab("notes")}
               >
-                Notes
+                {t.notes}
               </button>
               <button
                 type="button"
@@ -1128,7 +1142,7 @@ export function App() {
                 data-active={rightTab === "assistant" ? "true" : "false"}
                 onClick={() => setRightTab("assistant")}
               >
-                AI
+                {t.ai}
               </button>
             </div>
 
@@ -1137,12 +1151,12 @@ export function App() {
                 <div>
                   {!activeTab && (
                     <p style={{ fontSize: "0.82rem", color: "var(--kuraso-text-muted)" }}>
-                      Open a PDF to browse its outline.
+                      {t.openPdfOutlineHint}
                     </p>
                   )}
                   {activeTab && activeTab.outline.length === 0 && (
                     <p style={{ fontSize: "0.82rem", color: "var(--kuraso-text-muted)" }}>
-                      No embedded outline or headings detected for this PDF.
+                      {t.noOutlineHint}
                     </p>
                   )}
                   {activeTab &&

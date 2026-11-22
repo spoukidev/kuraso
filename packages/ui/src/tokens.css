@@ -72,6 +72,11 @@
   --kuraso-accent-soft: rgba(96, 165, 250, 0.18);
 }
 
+/* Automatic Arabic typography when RTL is active */
+[dir="rtl"] {
+  --kuraso-font-ui: var(--kuraso-font-arabic), "Inter", system-ui, sans-serif;
+}
+
 /* Isolated LTR container for academic PDFs even under RTL UI */
 .kuraso-pdf-viewport {
   direction: ltr;

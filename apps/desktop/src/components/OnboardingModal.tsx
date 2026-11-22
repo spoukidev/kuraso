@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AlertTriangle, BookOpen, Check } from "lucide-react";
-import { TRANSLATIONS, type UILanguage } from "../i18n/translations";
+import { TRANSLATIONS, type UILanguage } from "../i18n/translations.mjs";
 
 export type OnboardingAIChoice = "free-cloud" | "paid" | "university" | "local" | "none";
 
@@ -44,7 +44,7 @@ export function OnboardingModal({
             <BookOpen size={18} />
             <strong>{t.onboardingTitle}</strong>
           </div>
-          <span style={{ fontSize: "0.74rem", color: "var(--kuraso-text-muted)" }}>v0.1 Alpha</span>
+          <span style={{ fontSize: "0.74rem", color: "var(--kuraso-text-muted)" }}>v0.2</span>
         </div>
 
         <div className="kuraso-dialog-body" style={{ maxHeight: "74vh", overflowY: "auto" }}>
@@ -71,9 +71,14 @@ export function OnboardingModal({
               >
                 Français
               </button>
-              <span className="kuraso-chip" style={{ opacity: 0.55, cursor: "default" }}>
-                العربية (v0.2 RTL)
-              </span>
+              <button
+                type="button"
+                className="kuraso-chip"
+                data-active={language === "ar" ? "true" : "false"}
+                onClick={() => onLanguageChange("ar")}
+              >
+                العربية (RTL)
+              </button>
             </div>
           </div>
 
