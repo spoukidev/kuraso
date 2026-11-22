@@ -53,7 +53,8 @@ mod tests {
 
     #[test]
     fn filters_invalid_paragraph_citations() {
-        let valid_ids: HashSet<String> = ["P1", "P12", "P14"].into_iter().map(String::from).collect();
+        let valid_ids: HashSet<String> =
+            ["P1", "P12", "P14"].into_iter().map(String::from).collect();
         let res = verify_paragraph_citations(
             "They evaluated on CIC-IDS2017 [P12] and claimed 99% accuracy [P999] [P14].",
             &valid_ids,
