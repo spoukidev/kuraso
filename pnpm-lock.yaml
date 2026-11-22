@@ -65,6 +65,9 @@ importers:
 
   packages/reader:
     dependencies:
+      '@kuraso/formats':
+        specifier: workspace:*
+        version: link:../formats
       pdfjs-dist:
         specifier: ^4.10.38
         version: 4.10.38
