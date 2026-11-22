@@ -13,6 +13,7 @@
     "test": "turbo run test",
     "test:formats": "node --test packages/formats/test/*.test.mjs",
     "test:reader": "node --test packages/reader/test/*.test.mjs",
+    "test:importers": "node --test packages/importers/test/*.test.mjs",
     "fetch:pdfium": "node scripts/fetch-pdfium.mjs",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",

@@ -5,5 +5,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+kuraso-library = { path = "../kuraso-library" }
+rusqlite = { version = "0.32", features = ["bundled"] }
 serde.workspace = true
 thiserror.workspace = true

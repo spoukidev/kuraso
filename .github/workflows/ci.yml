@@ -28,6 +28,8 @@ jobs:
         run: npm run test:formats
       - name: Run reader coordinate & search tests
         run: npm run test:reader
+      - name: Run importer & metadata tests
+        run: npm run test:importers
       - name: Typecheck workspace
         run: pnpm typecheck
       - name: Build desktop frontend

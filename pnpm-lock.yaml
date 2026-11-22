@@ -23,6 +23,9 @@ importers:
       '@kuraso/formats':
         specifier: workspace:*
         version: link:../../packages/formats
+      '@kuraso/importers':
+        specifier: workspace:*
+        version: link:../../packages/importers
       '@kuraso/reader':
         specifier: workspace:*
         version: link:../../packages/reader
@@ -62,6 +65,12 @@ importers:
         version: 6.4.6
 
   packages/formats: {}
+
+  packages/importers:
+    dependencies:
+      '@kuraso/formats':
+        specifier: workspace:*
+        version: link:../formats
 
   packages/reader:
     dependencies:

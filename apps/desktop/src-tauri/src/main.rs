@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use kuraso_index::{RebuildStats, SearchHit, SearchIndex};
+use kuraso_library::{CollectionsFile, Library, PaperMeta, SyncConflict};
 use serde::Serialize;
 use std::fs;
 use std::path::PathBuf;
@@ -50,12 +52,83 @@ fn get_launch_files() -> Vec<String> {
         .collect()
 }
 
+#[tauri::command]
+fn init_library(library_path: String) -> Result<Vec<PaperMeta>, String> {
+    let lib = Library::open_or_init(PathBuf::from(library_path)).map_err(|e| e.to_string())?;
+    lib.list_papers().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn import_pdf_to_library(
+    library_path: String,
+    index_path: String,
+    source_pdf_path: String,
+    title: String,
+    year: Option<i32>,
+    doi: Option<String>,
+) -> Result<PaperMeta, String> {
+    let bytes = fs::read(&source_pdf_path).map_err(|e| format!("Failed to read source PDF: {e}"))?;
+    let lib = Library::open_or_init(PathBuf::from(library_path)).map_err(|e| e.to_string())?;
+    let meta = lib
+        .import_pdf_bytes(&title, &bytes, year, doi)
+        .map_err(|e| e.to_string())?;
+    let mut idx = SearchIndex::open(&PathBuf::from(index_path)).map_err(|e| e.to_string())?;
+    let _ = idx.rebuild_from_library(&lib);
+    Ok(meta)
+}
+
+#[tauri::command]
+fn save_paper_meta(library_path: String, meta: PaperMeta) -> Result<(), String> {
+    let lib = Library::open_or_init(PathBuf::from(library_path)).map_err(|e| e.to_string())?;
+    lib.save_paper_meta(&meta).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn load_collections(library_path: String) -> Result<CollectionsFile, String> {
+    let lib = Library::open_or_init(PathBuf::from(library_path)).map_err(|e| e.to_string())?;
+    lib.load_collections().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn save_collections(library_path: String, data: CollectionsFile) -> Result<(), String> {
+    let lib = Library::open_or_init(PathBuf::from(library_path)).map_err(|e| e.to_string())?;
+    lib.save_collections(&data).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn rebuild_index(library_path: String, index_path: String) -> Result<RebuildStats, String> {
+    let lib = Library::open_or_init(PathBuf::from(library_path)).map_err(|e| e.to_string())?;
+    let mut idx = SearchIndex::open(&PathBuf::from(index_path)).map_err(|e| e.to_string())?;
+    idx.rebuild_from_library(&lib).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn search_library(index_path: String, query: String, limit: Option<usize>) -> Result<Vec<SearchHit>, String> {
+    let idx = SearchIndex::open(&PathBuf::from(index_path)).map_err(|e| e.to_string())?;
+    idx.search(&query, limit.unwrap_or(50))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn scan_sync_conflicts(library_path: String) -> Result<Vec<SyncConflict>, String> {
+    let lib = Library::open_or_init(PathBuf::from(library_path)).map_err(|e| e.to_string())?;
+    lib.scan_sync_conflicts().map_err(|e| e.to_string())
+}
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             get_runtime_info,
             read_pdf_bytes,
-            get_launch_files
+            get_launch_files,
+            init_library,
+            import_pdf_to_library,
+            save_paper_meta,
+            load_collections,
+            save_collections,
+            rebuild_index,
+            search_library,
+            scan_sync_conflicts
         ])
         .run(tauri::generate_context!())
         .expect("error while running Kuraso desktop application");
