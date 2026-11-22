@@ -76,6 +76,51 @@ pub fn paragraph_id(index_one_based: usize) -> String {
     format!("P{index_one_based}")
 }
 
+/// Detect whether a single line looks like an academic section heading.
+pub fn detect_heading_level(line: &str) -> Option<u8> {
+    let trimmed = line.trim();
+    if trimmed.is_empty() || trimmed.len() > 90 || trimmed.ends_with('.') || trimmed.ends_with('?') {
+        return None;
+    }
+    let lower = trimmed.to_ascii_lowercase();
+    let stripped = lower
+        .trim_start_matches(|c: char| c.is_ascii_digit() || c == '.' || c.is_whitespace());
+    const KNOWN: &[&str] = &[
+        "abstract",
+        "introduction",
+        "background",
+        "related work",
+        "method",
+        "methodology",
+        "experiments",
+        "evaluation",
+        "results",
+        "discussion",
+        "limitations",
+        "conclusion",
+        "conclusions",
+        "references",
+    ];
+    if KNOWN.contains(&stripped) {
+        return Some(1);
+    }
+    let mut parts = trimmed.split_whitespace();
+    if let (Some(prefix), Some(first_word)) = (parts.next(), parts.next()) {
+        if first_word.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {
+            let clean_prefix = prefix.trim_end_matches('.');
+            if !clean_prefix.is_empty()
+                && clean_prefix
+                    .split('.')
+                    .all(|seg| !seg.is_empty() && seg.chars().all(|c| c.is_ascii_digit()))
+            {
+                let depth = clean_prefix.split('.').count().min(3) as u8;
+                return Some(depth);
+            }
+        }
+    }
+    None
+}
+
 /// Check if a path has a `.pdf` extension (case-insensitive).
 pub fn is_pdf_path(path: &Path) -> bool {
     path.extension()

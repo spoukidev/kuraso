@@ -237,6 +237,56 @@ impl Library {
         }
     }
 
+    pub fn save_paper_notes(&self, slug: &str, markdown: &str) -> Result<(), LibraryError> {
+        let notes_path = self.root.join(PAPERS_DIR).join(slug).join("notes.md");
+        write_atomic(&notes_path, markdown.as_bytes())?;
+        Ok(())
+    }
+
+    pub fn load_annotations_raw(&self, slug: &str) -> Result<Option<String>, LibraryError> {
+        let path = self.root.join(PAPERS_DIR).join(slug).join("annotations.json");
+        if path.is_file() {
+            Ok(Some(fs::read_to_string(path)?))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn save_annotations_raw(&self, slug: &str, json: &str) -> Result<(), LibraryError> {
+        let path = self.root.join(PAPERS_DIR).join(slug).join("annotations.json");
+        write_atomic(&path, json.as_bytes())?;
+        Ok(())
+    }
+
+    pub fn load_structure_raw(&self, slug: &str) -> Result<Option<String>, LibraryError> {
+        let path = self.root.join(PAPERS_DIR).join(slug).join("structure.json");
+        if path.is_file() {
+            Ok(Some(fs::read_to_string(path)?))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Save `structure.json` atomically; if an existing version exists and `backup_version` is given,
+    /// preserve it as `structure.v<N>.bak.json` before writing so re-parses are never destructive.
+    pub fn save_structure_raw(
+        &self,
+        slug: &str,
+        json: &str,
+        backup_version: Option<u32>,
+    ) -> Result<(), LibraryError> {
+        let dir = self.root.join(PAPERS_DIR).join(slug);
+        let path = dir.join("structure.json");
+        if path.is_file() {
+            if let Some(prev_ver) = backup_version {
+                let bak = dir.join(format!("structure.v{prev_ver}.bak.json"));
+                let _ = fs::copy(&path, &bak);
+            }
+        }
+        write_atomic(&path, json.as_bytes())?;
+        Ok(())
+    }
+
     pub fn import_pdf_bytes(
         &self,
         title: &str,

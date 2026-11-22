@@ -662,3 +662,206 @@ body,
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   z-index: 200;
 }
+
+/* Phase 3: Text Layer, Highlight Overlay, Selection Toolbar, Annotation Gathering & Notes Editor */
+.kuraso-annotation-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.kuraso-highlight-box {
+  position: absolute;
+  border-radius: 2px;
+  mix-blend-mode: multiply;
+}
+
+[data-theme="dark"] .kuraso-highlight-box {
+  mix-blend-mode: screen;
+}
+
+.kuraso-text-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  line-height: 1;
+  user-select: text;
+}
+
+.kuraso-text-layer span {
+  position: absolute;
+  white-space: pre;
+  color: transparent;
+  cursor: text;
+}
+
+.kuraso-text-layer span::selection {
+  background-color: rgba(29, 78, 216, 0.25);
+}
+
+.kuraso-selection-toolbar {
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-inline: 10px;
+  padding-block: 6px;
+  background-color: var(--kuraso-bg-elevated);
+  border: 1px solid var(--kuraso-border);
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.kuraso-color-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--kuraso-duration-fast) ease;
+}
+
+.kuraso-color-dot:hover,
+.kuraso-color-dot[data-active="true"] {
+  transform: scale(1.18);
+  outline: 2px solid var(--kuraso-accent);
+  outline-offset: 1px;
+}
+
+.kuraso-ann-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-inline: 10px;
+  padding-block: 8px;
+  background-color: var(--kuraso-bg-elevated);
+  border: 1px solid var(--kuraso-border);
+  border-inline-start-width: 3px;
+  border-radius: 7px;
+}
+
+.kuraso-ann-jump {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--kuraso-text-muted);
+  cursor: pointer;
+}
+
+.kuraso-ann-jump:hover {
+  color: var(--kuraso-accent);
+}
+
+.kuraso-ann-quote {
+  margin: 0;
+  padding-inline: 8px;
+  padding-block: 5px;
+  border-radius: 5px;
+  font-family: var(--kuraso-font-reading);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.kuraso-notes-textarea {
+  flex: 1;
+  min-height: 280px;
+  width: 100%;
+  resize: none;
+  padding: 10px;
+  border: 1px solid var(--kuraso-border);
+  border-radius: 8px;
+  background-color: var(--kuraso-bg-elevated);
+  color: var(--kuraso-text-primary);
+  font-family: var(--kuraso-font-mono);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  outline: none;
+}
+
+.kuraso-notes-textarea:focus {
+  border-color: var(--kuraso-accent);
+}
+
+.kuraso-md-preview {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid var(--kuraso-border);
+  border-radius: 8px;
+  background-color: var(--kuraso-bg-elevated);
+  font-family: var(--kuraso-font-reading);
+  font-size: 0.88rem;
+}
+
+/* Phase 4: Grounded BYOK AI Settings & Assistant */
+.kuraso-info-box {
+  padding-inline: 10px;
+  padding-block: 8px;
+  border-radius: 7px;
+  border: 1px solid var(--kuraso-border);
+  background-color: var(--kuraso-bg-surface);
+  font-size: 0.78rem;
+  color: var(--kuraso-text-secondary);
+  line-height: 1.45;
+}
+
+.kuraso-ai-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kuraso-ai-badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-inline: 6px;
+  padding-block: 2px;
+  border-radius: 4px;
+  background-color: var(--kuraso-accent-soft);
+  color: var(--kuraso-accent);
+  margin-block-end: 4px;
+}
+
+.kuraso-cite-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-inline: 2px;
+  padding-inline: 5px;
+  padding-block: 1px;
+  border: 1px solid var(--kuraso-accent);
+  border-radius: 4px;
+  background-color: var(--kuraso-accent-soft);
+  color: var(--kuraso-accent);
+  font-family: var(--kuraso-font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.kuraso-cite-chip:hover {
+  opacity: 0.85;
+}
+
+.kuraso-unverified-tag {
+  display: inline-block;
+  margin-inline-start: 4px;
+  padding-inline: 5px;
+  padding-block: 1px;
+  border-radius: 4px;
+  background-color: var(--kuraso-hl-yellow-bg);
+  color: var(--kuraso-hl-yellow-border);
+  font-size: 0.66rem;
+  font-weight: 600;
+}

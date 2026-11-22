@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KurasoTheme } from "@kuraso/ui";
-import { KURASO_FORMAT_VERSION, type Collection, type PaperMeta } from "@kuraso/formats";
+import {
+  KURASO_FORMAT_VERSION,
+  type Annotation,
+  type Collection,
+  type PaperMeta,
+  type PaperStructure,
+} from "@kuraso/formats";
 import type { FetchedMetadata } from "@kuraso/importers";
 import {
   BookOpen,
@@ -14,8 +20,8 @@ import {
   PanelRight,
   Plus,
   Search,
+  Settings,
   Shield,
-  Sparkles,
   Star,
   Sun,
   X,
@@ -24,6 +30,15 @@ import { PdfViewer } from "./components/PdfViewer";
 import { CommandPalette, type PaletteCommand } from "./components/CommandPalette";
 import { LibraryView } from "./components/LibraryView";
 import { ImportByIdModal } from "./components/ImportByIdModal";
+import { AnnotationPanel } from "./components/AnnotationPanel";
+import { NotesEditor } from "./components/NotesEditor";
+import { AISettingsModal } from "./components/AISettingsModal";
+import { AssistantPanel } from "./components/AssistantPanel";
+import {
+  loadAISettings,
+  saveAISettings,
+  type AISettings,
+} from "./state/aiStore";
 import {
   loadSavedPositions,
   loadSavedTheme,
@@ -32,6 +47,12 @@ import {
   type OpenDocumentTab,
   type OutlineNode,
 } from "./state/readerStore";
+import {
+  loadPaperAnnotations,
+  loadPaperNotes,
+  savePaperAnnotations,
+  savePaperNotes,
+} from "./state/annotationsStore";
 import {
   createCollectionRecord,
   createPaperRecord,
@@ -44,7 +65,7 @@ import {
   sha256Hex,
 } from "./state/libraryStore";
 
-type RightTab = "outline" | "annotations" | "assistant";
+type RightTab = "outline" | "annotations" | "notes" | "assistant";
 type LibraryFilter =
   | { kind: "all" }
   | { kind: "status"; status: "to-read" | "reading" | "important" }
@@ -75,6 +96,12 @@ export function App() {
   // Reader tabs
   const [tabs, setTabs] = useState<OpenDocumentTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  const [annotationsByPaper, setAnnotationsByPaper] = useState<Record<string, Annotation[]>>({});
+  const [notesByPaper, setNotesByPaper] = useState<Record<string, string>>({});
+  const [aiSettings, setAiSettings] = useState<AISettings>(() => loadAISettings());
+  const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
+  const [sessionApiKeys, setSessionApiKeys] = useState<Record<string, string>>({});
+  const [pendingExplainText, setPendingExplainText] = useState<string | null>(null);
   const [jumpToPage, setJumpToPage] = useState<number | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -112,6 +139,14 @@ export function App() {
         return;
       }
       const savedPage = loadSavedPositions()[paper.id] ?? paper.readingPosition?.page ?? 1;
+      setAnnotationsByPaper((prev) =>
+        prev[paper.id] ? prev : { ...prev, [paper.id]: loadPaperAnnotations(paper.id) },
+      );
+      setNotesByPaper((prev) =>
+        prev[paper.id] !== undefined
+          ? prev
+          : { ...prev, [paper.id]: loadPaperNotes(paper.id, paper.title) },
+      );
       setTabs((prev) => {
         if (prev.some((t) => t.id === paper.id)) return prev;
         return [
@@ -255,12 +290,18 @@ export function App() {
   );
 
   const handleDocumentLoaded = useCallback(
-    (meta: { pageCount: number; scanned: boolean; outline: OutlineNode[] }) => {
+    (meta: {
+      pageCount: number;
+      scanned: boolean;
+      outline: OutlineNode[];
+      structure: PaperStructure;
+    }) => {
       updateActiveTab((t) => ({
         ...t,
         pageCount: meta.pageCount,
         scanned: meta.scanned,
         outline: meta.outline,
+        structure: meta.structure,
       }));
       if (activeTabId) {
         setPapers((prev) =>
@@ -273,6 +314,67 @@ export function App() {
       }
     },
     [updateActiveTab, activeTabId],
+  );
+
+  const activeAnnotations = useMemo(
+    () => (activeTabId ? (annotationsByPaper[activeTabId] ?? []) : []),
+    [annotationsByPaper, activeTabId],
+  );
+
+  const activeNotes = useMemo(
+    () => (activeTabId ? (notesByPaper[activeTabId] ?? "") : ""),
+    [notesByPaper, activeTabId],
+  );
+
+  const handleCreateAnnotation = useCallback(
+    (ann: Annotation, focusNotes = false) => {
+      if (!activeTabId) return;
+      setAnnotationsByPaper((prev) => {
+        const next = [ann, ...(prev[activeTabId] ?? [])];
+        savePaperAnnotations(activeTabId, next);
+        return { ...prev, [activeTabId]: next };
+      });
+      if (focusNotes) {
+        setRightOpen(true);
+        setRightTab("annotations");
+      }
+    },
+    [activeTabId],
+  );
+
+  const handleUpdateAnnotation = useCallback(
+    (updated: Annotation) => {
+      if (!activeTabId) return;
+      setAnnotationsByPaper((prev) => {
+        const next = (prev[activeTabId] ?? []).map((a) => (a.id === updated.id ? updated : a));
+        savePaperAnnotations(activeTabId, next);
+        return { ...prev, [activeTabId]: next };
+      });
+    },
+    [activeTabId],
+  );
+
+  const handleDeleteAnnotation = useCallback(
+    (annId: string) => {
+      if (!activeTabId) return;
+      setAnnotationsByPaper((prev) => {
+        const next = (prev[activeTabId] ?? []).filter((a) => a.id !== annId);
+        savePaperAnnotations(activeTabId, next);
+        return { ...prev, [activeTabId]: next };
+      });
+    },
+    [activeTabId],
+  );
+
+  const handleNotesChange = useCallback(
+    (markdown: string) => {
+      if (!activeTabId) return;
+      setNotesByPaper((prev) => {
+        savePaperNotes(activeTabId, markdown);
+        return { ...prev, [activeTabId]: markdown };
+      });
+    },
+    [activeTabId],
   );
 
   const handleCreateCollection = useCallback(() => {
@@ -393,6 +495,11 @@ export function App() {
         run: () => setCenterMode("library"),
       },
       {
+        id: "ai-settings",
+        label: "Configure AI provider (BYOK / Ollama)…",
+        run: () => setAiSettingsOpen(true),
+      },
+      {
         id: "cycle-theme",
         label: `Switch theme (current: ${theme})`,
         run: cycleTheme,
@@ -511,6 +618,14 @@ export function App() {
           >
             {theme === "dark" ? <Moon size={16} /> : <Sun size={16} />}
             <span style={{ textTransform: "capitalize" }}>{theme}</span>
+          </button>
+          <button
+            type="button"
+            className="kuraso-icon-btn"
+            title="AI Settings (BYOK / Ollama)"
+            onClick={() => setAiSettingsOpen(true)}
+          >
+            <Settings size={16} />
           </button>
           <button
             type="button"
@@ -716,7 +831,7 @@ export function App() {
                 paddingInline: 8,
               }}
             >
-              Format v{KURASO_FORMAT_VERSION} · Phase 2
+              Format v{KURASO_FORMAT_VERSION} · Phase 4
             </div>
           </aside>
         )}
@@ -768,6 +883,7 @@ export function App() {
           {centerMode === "reader" && activeTab ? (
             <PdfViewer
               doc={activeTab}
+              annotations={activeAnnotations}
               jumpToPage={jumpToPage}
               searchOpen={searchOpen}
               onCloseSearch={() => setSearchOpen(false)}
@@ -775,6 +891,12 @@ export function App() {
               onZoomChange={(zoom) => updateActiveTab((t) => ({ ...t, zoom }))}
               onToggleCrop={() => updateActiveTab((t) => ({ ...t, marginCrop: !t.marginCrop }))}
               onPageChange={handlePageChange}
+              onCreateAnnotation={handleCreateAnnotation}
+              onExplainSelection={(text) => {
+                setRightOpen(true);
+                setRightTab("assistant");
+                setPendingExplainText(text);
+              }}
               onDocumentLoaded={handleDocumentLoaded}
             />
           ) : (
@@ -814,6 +936,14 @@ export function App() {
                 data-active={rightTab === "annotations" ? "true" : "false"}
                 onClick={() => setRightTab("annotations")}
               >
+                Highlights ({activeAnnotations.length})
+              </button>
+              <button
+                type="button"
+                className="kuraso-right-tab"
+                data-active={rightTab === "notes" ? "true" : "false"}
+                onClick={() => setRightTab("notes")}
+              >
                 Notes
               </button>
               <button
@@ -836,8 +966,7 @@ export function App() {
                   )}
                   {activeTab && activeTab.outline.length === 0 && (
                     <p style={{ fontSize: "0.82rem", color: "var(--kuraso-text-muted)" }}>
-                      No embedded outline found in this PDF. Heuristic heading detection arrives in
-                      Phase 3.
+                      No embedded outline or headings detected for this PDF.
                     </p>
                   )}
                   {activeTab &&
@@ -861,31 +990,57 @@ export function App() {
                 </div>
               )}
 
-              {rightTab === "annotations" && (
-                <p style={{ fontSize: "0.82rem", color: "var(--kuraso-text-muted)" }}>
-                  Semantic highlights, margin notes, and Annotation Gathering arrive in Phase 3.
-                </p>
-              )}
-
-              {rightTab === "assistant" && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontWeight: 500,
-                      fontSize: "0.86rem",
+              {rightTab === "annotations" &&
+                (activeTab ? (
+                  <AnnotationPanel
+                    annotations={activeAnnotations}
+                    onJumpToPage={(page) => {
+                      setCenterMode("reader");
+                      setJumpToPage(page);
                     }}
-                  >
-                    <Sparkles size={15} />
-                    <span>Grounded BYOK AI</span>
-                  </div>
-                  <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--kuraso-text-muted)" }}>
-                    Bring your own API key (including free-tier options) or Ollama in Phase 4.
+                    onUpdateAnnotation={handleUpdateAnnotation}
+                    onDeleteAnnotation={handleDeleteAnnotation}
+                  />
+                ) : (
+                  <p style={{ fontSize: "0.82rem", color: "var(--kuraso-text-muted)" }}>
+                    Open a PDF to create and gather highlights.
                   </p>
-                </div>
-              )}
+                ))}
+
+              {rightTab === "notes" &&
+                (activeTab ? (
+                  <NotesEditor markdown={activeNotes} onChange={handleNotesChange} />
+                ) : (
+                  <p style={{ fontSize: "0.82rem", color: "var(--kuraso-text-muted)" }}>
+                    Open a PDF to edit its Markdown notes (`notes.md`).
+                  </p>
+                ))}
+
+              {rightTab === "assistant" &&
+                (activeTab ? (
+                  <AssistantPanel
+                    paperId={activeTab.id}
+                    paperTitle={activeTab.title}
+                    structure={activeTab.structure}
+                    scanned={activeTab.scanned}
+                    localAiOnly={collections.some(
+                      (c) => c.localAiOnly && c.paperIds.includes(activeTab.id),
+                    )}
+                    settings={aiSettings}
+                    apiKey={sessionApiKeys[aiSettings.providerId] ?? ""}
+                    pendingExplainText={pendingExplainText}
+                    onClearPendingExplain={() => setPendingExplainText(null)}
+                    onOpenSettings={() => setAiSettingsOpen(true)}
+                    onJumpToPage={(page) => {
+                      setCenterMode("reader");
+                      setJumpToPage(page);
+                    }}
+                  />
+                ) : (
+                  <p style={{ fontSize: "0.82rem", color: "var(--kuraso-text-muted)" }}>
+                    Open a PDF to summarize or ask grounded questions with your own AI.
+                  </p>
+                ))}
             </div>
           </aside>
         )}
@@ -901,6 +1056,33 @@ export function App() {
         open={importModalOpen}
         onClose={() => setImportModalOpen(false)}
         onImported={(meta) => void handleImportedById(meta)}
+      />
+
+      <AISettingsModal
+        open={aiSettingsOpen}
+        settings={aiSettings}
+        hasKey={Boolean(sessionApiKeys[aiSettings.providerId])}
+        onClose={() => setAiSettingsOpen(false)}
+        onSave={(nextSettings, newApiKey) => {
+          setAiSettings(nextSettings);
+          saveAISettings(nextSettings);
+          if (newApiKey) {
+            setSessionApiKeys((prev) => ({ ...prev, [nextSettings.providerId]: newApiKey }));
+          }
+          showToast(
+            nextSettings.enabled
+              ? `AI ready: ${nextSettings.label}`
+              : "AI assistant disabled.",
+          );
+        }}
+        onRemoveKey={() => {
+          setSessionApiKeys((prev) => {
+            const copy = { ...prev };
+            delete copy[aiSettings.providerId];
+            return copy;
+          });
+          showToast("API key removed from session.");
+        }}
       />
 
       {toast && (

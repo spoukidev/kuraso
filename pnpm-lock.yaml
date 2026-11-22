@@ -20,6 +20,12 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@kuraso/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
+      '@kuraso/annotations':
+        specifier: workspace:*
+        version: link:../../packages/annotations
       '@kuraso/formats':
         specifier: workspace:*
         version: link:../../packages/formats
@@ -63,6 +69,18 @@ importers:
       vite:
         specifier: ^6.0.6
         version: 6.4.6
+
+  packages/ai:
+    dependencies:
+      '@kuraso/formats':
+        specifier: workspace:*
+        version: link:../formats
+
+  packages/annotations:
+    dependencies:
+      '@kuraso/formats':
+        specifier: workspace:*
+        version: link:../formats
 
   packages/formats: {}
 

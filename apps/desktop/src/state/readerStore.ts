@@ -1,9 +1,11 @@
+import type { PaperStructure } from "@kuraso/formats";
 import type { KurasoTheme } from "@kuraso/ui";
 
 export interface OutlineNode {
   title: string;
   page: number;
   level: number;
+  source?: "toc" | "heuristic";
 }
 
 export interface OpenDocumentTab {
@@ -16,6 +18,7 @@ export interface OpenDocumentTab {
   marginCrop: boolean;
   scanned: boolean;
   outline: OutlineNode[];
+  structure?: PaperStructure | null;
 }
 
 const POSITION_STORAGE_KEY = "kuraso:reading-positions:v1";

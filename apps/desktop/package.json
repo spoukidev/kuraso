@@ -10,6 +10,8 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@kuraso/ai": "workspace:*",
+    "@kuraso/annotations": "workspace:*",
     "@kuraso/formats": "workspace:*",
     "@kuraso/importers": "workspace:*",
     "@kuraso/reader": "workspace:*",

@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use kuraso_ai::{ChatMessage, ProviderRequestConfig};
 use kuraso_index::{RebuildStats, SearchHit, SearchIndex};
 use kuraso_library::{CollectionsFile, Library, PaperMeta, SyncConflict};
 use serde::Serialize;
@@ -115,6 +116,77 @@ fn scan_sync_conflicts(library_path: String) -> Result<Vec<SyncConflict>, String
     lib.scan_sync_conflicts().map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn read_paper_notes(library_path: String, slug: String) -> Result<String, String> {
+    let lib = Library::open_or_init(PathBuf::from(library_path)).map_err(|e| e.to_string())?;
+    lib.read_paper_notes(&slug).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn save_paper_notes(library_path: String, slug: String, markdown: String) -> Result<(), String> {
+    let lib = Library::open_or_init(PathBuf::from(library_path)).map_err(|e| e.to_string())?;
+    lib.save_paper_notes(&slug, &markdown)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn load_annotations_raw(library_path: String, slug: String) -> Result<Option<String>, String> {
+    let lib = Library::open_or_init(PathBuf::from(library_path)).map_err(|e| e.to_string())?;
+    lib.load_annotations_raw(&slug).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn save_annotations_raw(library_path: String, slug: String, json: String) -> Result<(), String> {
+    let lib = Library::open_or_init(PathBuf::from(library_path)).map_err(|e| e.to_string())?;
+    lib.save_annotations_raw(&slug, &json)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn load_structure_raw(library_path: String, slug: String) -> Result<Option<String>, String> {
+    let lib = Library::open_or_init(PathBuf::from(library_path)).map_err(|e| e.to_string())?;
+    lib.load_structure_raw(&slug).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn save_structure_raw(
+    library_path: String,
+    slug: String,
+    json: String,
+    backup_version: Option<u32>,
+) -> Result<(), String> {
+    let lib = Library::open_or_init(PathBuf::from(library_path)).map_err(|e| e.to_string())?;
+    lib.save_structure_raw(&slug, &json, backup_version)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn ai_save_key(provider_id: String, api_key: String) -> Result<(), String> {
+    kuraso_ai::store_api_key(&provider_id, &api_key).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn ai_has_key(provider_id: String) -> Result<bool, String> {
+    kuraso_ai::load_api_key(&provider_id)
+        .map(|opt| opt.is_some())
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn ai_delete_key(provider_id: String) -> Result<(), String> {
+    kuraso_ai::delete_api_key(&provider_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn ai_run_chat(
+    config: ProviderRequestConfig,
+    messages: Vec<ChatMessage>,
+) -> Result<String, String> {
+    kuraso_ai::run_chat(&config, &messages)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
@@ -128,7 +200,17 @@ fn main() {
             save_collections,
             rebuild_index,
             search_library,
-            scan_sync_conflicts
+            scan_sync_conflicts,
+            read_paper_notes,
+            save_paper_notes,
+            load_annotations_raw,
+            save_annotations_raw,
+            load_structure_raw,
+            save_structure_raw,
+            ai_save_key,
+            ai_has_key,
+            ai_delete_key,
+            ai_run_chat
         ])
         .run(tauri::generate_context!())
         .expect("error while running Kuraso desktop application");

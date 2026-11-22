@@ -30,6 +30,10 @@ jobs:
         run: npm run test:reader
       - name: Run importer & metadata tests
         run: npm run test:importers
+      - name: Run W3C annotation & remapping tests
+        run: npm run test:annotations
+      - name: Run grounded AI citation verification tests
+        run: npm run test:ai
       - name: Typecheck workspace
         run: pnpm typecheck
       - name: Build desktop frontend
