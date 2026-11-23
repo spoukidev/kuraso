@@ -81,11 +81,11 @@ export function AnnotationPanel({
       <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
         <Search
           size={13}
-          style={{ position: "absolute", insetInlineStart: 8, color: "var(--kuraso-text-muted)" }}
+          style={{ position: "absolute", insetInlineStart: 10, color: "var(--kuraso-text-muted)" }}
         />
         <input
           className="kuraso-input"
-          style={{ width: "100%", paddingInlineStart: 26, fontSize: "0.78rem" }}
+          style={{ width: "100%", paddingInlineStart: 28, borderRadius: 999 }}
           placeholder="Filter highlights & notes…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -110,10 +110,14 @@ export function AnnotationPanel({
               type="button"
               className="kuraso-color-dot"
               data-active={colorFilter === c ? "true" : "false"}
-              title={`${c} (${SEMANTIC_LABELS[c]})`}
-              style={{ backgroundColor: style.cssBg, borderColor: style.cssBorder }}
+              title={`${style.key} · ${SEMANTIC_LABELS[c]}`}
+              aria-label={`Filter: ${SEMANTIC_LABELS[c]}`}
+              aria-pressed={colorFilter === c}
+              style={{ backgroundColor: style.cssMarker }}
               onClick={() => setColorFilter(colorFilter === c ? "all" : c)}
-            />
+            >
+              {style.key}
+            </button>
           );
         })}
       </div>
@@ -121,7 +125,7 @@ export function AnnotationPanel({
       <div style={{ display: "flex", gap: 6 }}>
         <select
           className="kuraso-input"
-          style={{ flex: 1, fontSize: "0.76rem", paddingBlock: 3 }}
+          style={{ flex: 1, minWidth: 0, fontSize: 12, paddingBlock: 4 }}
           aria-label="Group annotations"
           value={groupBy}
           onChange={(e) => setGroupBy(e.target.value as "page" | "color" | "tag")}
@@ -134,7 +138,7 @@ export function AnnotationPanel({
         {allTags.length > 0 && (
           <select
             className="kuraso-input"
-            style={{ flex: 1, fontSize: "0.76rem", paddingBlock: 3 }}
+            style={{ flex: 1, minWidth: 0, fontSize: 12, paddingBlock: 4 }}
             aria-label="Filter by tag"
             value={tagFilter}
             onChange={(e) => setTagFilter(e.target.value)}
@@ -150,9 +154,9 @@ export function AnnotationPanel({
       </div>
 
       {grouped.length === 0 ? (
-        <p style={{ fontSize: "0.8rem", color: "var(--kuraso-text-muted)", margin: 0 }}>
+        <p className="kuraso-panel-hint">
           {annotations.length === 0
-            ? "Select text in the PDF to create semantic highlights and margin notes (shortcuts 1–5 or N)."
+            ? "Select text in the paper, then press 1–5 to highlight or N for a margin note."
             : "No annotations match the active filter."}
         </p>
       ) : (
@@ -167,40 +171,41 @@ export function AnnotationPanel({
               const quote = getAnnotationQuote(ann);
               const isEditing = editingId === ann.id;
               return (
-                <div
-                  key={ann.id}
-                  className="kuraso-ann-card"
-                  style={{ borderInlineStartColor: style.cssBorder }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
-                    <button
-                      type="button"
-                      className="kuraso-ann-jump"
-                      onClick={() => onJumpToPage(page)}
-                    >
-                      p.{page}
-                      {ann.target.paragraph ? ` · ${ann.target.paragraph}` : ""}
-                      {ann.label ? ` · ${ann.label}` : ""}
-                    </button>
-                    <button
-                      type="button"
-                      className="kuraso-icon-btn"
-                      style={{ height: 22, paddingInline: 4 }}
-                      title="Delete annotation"
-                      onClick={() => onDeleteAnnotation(ann.id)}
-                    >
-                      <Trash2 size={12} />
-                    </button>
+                <div key={ann.id} className="kuraso-ann-card">
+                  <div className="kuraso-ann-head">
+                    <span className="kuraso-ann-label" style={{ backgroundColor: style.cssMarker }}>
+                      {(ann.label ?? SEMANTIC_LABELS[ann.color] ?? ann.color).replace(/-/g, " ")}
+                    </span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                      <button
+                        type="button"
+                        className="kuraso-ann-jump"
+                        title="Jump to this highlight"
+                        onClick={() => onJumpToPage(page)}
+                      >
+                        p.{page}
+                        {ann.target.paragraph ? ` · ${ann.target.paragraph}` : ""}
+                      </button>
+                      <button
+                        type="button"
+                        className="kuraso-icon-btn"
+                        style={{ height: 24, paddingInline: 5 }}
+                        title="Delete annotation"
+                        aria-label="Delete annotation"
+                        onClick={() => onDeleteAnnotation(ann.id)}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </span>
                   </div>
 
                   {quote && (
                     <blockquote
                       dir="auto"
                       className="kuraso-ann-quote"
-                      style={{ backgroundColor: style.cssBg }}
                       onClick={() => onJumpToPage(page)}
                     >
-                      “{quote}”
+                      <mark style={{ backgroundColor: style.cssBg }}>{quote}</mark>
                     </blockquote>
                   )}
 
@@ -216,7 +221,6 @@ export function AnnotationPanel({
                       />
                       <input
                         className="kuraso-input"
-                        style={{ fontSize: "0.76rem" }}
                         placeholder="#dataset, #limitation"
                         value={tagsDraft}
                         onChange={(e) => setTagsDraft(e.target.value)}
@@ -232,7 +236,7 @@ export function AnnotationPanel({
                         <button
                           type="button"
                           className="kuraso-primary-btn"
-                          style={{ paddingBlock: 4, paddingInline: 10, fontSize: "0.76rem" }}
+                          style={{ paddingBlock: 5, paddingInline: 14, fontSize: 13, boxShadow: "none" }}
                           onClick={() => commitEdit(ann)}
                         >
                           Save
@@ -246,18 +250,16 @@ export function AnnotationPanel({
                       title="Click to edit note or tags"
                     >
                       {ann.note ? (
-                        <p dir="auto" style={{ margin: 0, fontSize: "0.8rem", lineHeight: 1.45 }}>
+                        <p dir="auto" className="kuraso-ann-sticky">
                           {ann.note}
                         </p>
                       ) : (
-                        <span style={{ fontSize: "0.75rem", color: "var(--kuraso-text-muted)" }}>
-                          + Add margin note or tags…
-                        </span>
+                        <span className="kuraso-ann-add">+ Add a margin note or #tags</span>
                       )}
                       {ann.tags.length > 0 && (
                         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                           {ann.tags.map((t) => (
-                            <span key={t} className="kuraso-chip" style={{ fontSize: "0.68rem" }}>
+                            <span key={t} className="kuraso-chip" data-tag="true">
                               {t}
                             </span>
                           ))}

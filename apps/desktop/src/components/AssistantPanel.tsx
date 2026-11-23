@@ -6,12 +6,12 @@ import {
   buildPromptMessages,
   buildRecipePrompt,
   buildStudyPrompt,
-  callProviderChat,
   parseFlashcards,
   verifyGroundedResponse,
   type AITaskKind,
   type GroundedAnswer,
 } from "@kuraso/ai";
+import { runChat } from "../state/aiBridge";
 import {
   AlertTriangle,
   Send,
@@ -35,6 +35,8 @@ interface AssistantPanelProps {
   localAiOnly: boolean;
   settings: AISettings;
   apiKey: string;
+  /** True when a key is stored for the current provider (keychain or session). */
+  keyReady: boolean;
   pendingExplainText: string | null;
   onClearPendingExplain: () => void;
   onOpenSettings: () => void;
@@ -62,7 +64,7 @@ function GroundedAnswerView({
 }) {
   return (
     <div className="kuraso-ai-answer">
-      <div className="kuraso-ai-badge">AI-generated · Grounded</div>
+      <div className="kuraso-ai-badge">AI-generated · cited</div>
       {answer.sentences.map((s, idx) => {
         if (s.status === "heading") {
           return (
@@ -84,7 +86,7 @@ function GroundedAnswerView({
                     title={`Jump to ${cid} (page ${page})`}
                     onClick={() => onJumpToPage(page)}
                   >
-                    [{cid}]
+                    {cid}
                   </button>
                 </bdi>
               );
@@ -113,6 +115,7 @@ export function AssistantPanel({
   localAiOnly,
   settings,
   apiKey,
+  keyReady,
   pendingExplainText,
   onClearPendingExplain,
   onOpenSettings,
@@ -167,6 +170,11 @@ export function AssistantPanel({
       setError("This paper belongs to a 'Local AI only' collection. Switch to Ollama in Settings.");
       return;
     }
+    if (!settings.local && !keyReady) {
+      setError(`Add your ${settings.label} API key first — it's free and takes a minute.`);
+      onOpenSettings();
+      return;
+    }
     if (scanned || paragraphs.length === 0) {
       setError("No selectable text extracted for this paper yet.");
       return;
@@ -191,11 +199,9 @@ export function AssistantPanel({
     setRunning(true);
 
     try {
-      const { text } = await callProviderChat({
-        kind: settings.kind,
-        baseUrl: settings.baseUrl,
-        apiKey: settings.local ? undefined : apiKey,
-        model: settings.model,
+      const { text } = await runChat({
+        settings,
+        sessionApiKey: apiKey,
         messages: built.messages,
         signal: controller.signal,
       });
@@ -246,6 +252,11 @@ export function AssistantPanel({
       setError("This paper belongs to a 'Local AI only' collection. Switch to Ollama in Settings.");
       return;
     }
+    if (!settings.local && !keyReady) {
+      setError(`Add your ${settings.label} API key first — it's free and takes a minute.`);
+      onOpenSettings();
+      return;
+    }
     if (mode === "summarize-highlights" && annotations.length === 0) {
       setError("Create at least one highlight in this paper first.");
       return;
@@ -264,11 +275,9 @@ export function AssistantPanel({
 
     setRunning(true);
     try {
-      const { text } = await callProviderChat({
-        kind: settings.kind,
-        baseUrl: settings.baseUrl,
-        apiKey: settings.local ? undefined : apiKey,
-        model: settings.model,
+      const { text } = await runChat({
+        settings,
+        sessionApiKey: apiKey,
         messages: built.messages,
       });
 
@@ -310,6 +319,11 @@ export function AssistantPanel({
       setError("This paper belongs to a 'Local AI only' collection. Switch to Ollama in Settings.");
       return;
     }
+    if (!settings.local && !keyReady) {
+      setError(`Add your ${settings.label} API key first — it's free and takes a minute.`);
+      onOpenSettings();
+      return;
+    }
     if (scanned || paragraphs.length === 0) {
       setError("No selectable text extracted for this paper yet.");
       return;
@@ -320,11 +334,9 @@ export function AssistantPanel({
     });
     setRunning(true);
     try {
-      const { text } = await callProviderChat({
-        kind: settings.kind,
-        baseUrl: settings.baseUrl,
-        apiKey: settings.local ? undefined : apiKey,
-        model: settings.model,
+      const { text } = await runChat({
+        settings,
+        sessionApiKey: apiKey,
         messages: built.messages,
       });
       const verified = verifyGroundedResponse(

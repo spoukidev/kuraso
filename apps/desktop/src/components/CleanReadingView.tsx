@@ -44,9 +44,6 @@ function HighlightedParagraphText({
       <mark
         style={{
           backgroundColor: style.cssBg,
-          borderBottom: `2px solid ${style.cssBorder}`,
-          color: "inherit",
-          borderRadius: 3,
           paddingInline: 2,
         }}
       >

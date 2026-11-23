@@ -4,44 +4,115 @@
     <meta charset="UTF-8" />
     <title>Save to Kuraso</title>
     <style>
+      :root {
+        --ink: #151b33;
+        --paper: #fffdf5;
+        --marker: #ffe14a;
+        --muted: #5f6480;
+        --hand: #c7381f;
+      }
       body {
-        width: 280px;
+        width: 296px;
         margin: 0;
-        padding: 14px;
-        font-family: system-ui, -apple-system, sans-serif;
-        background: #faf8f3;
-        color: #1c1b19;
+        padding: 16px;
+        font-family: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+        font-weight: 500;
+        background-color: var(--paper);
+        background-image: radial-gradient(circle, rgba(21, 27, 51, 0.13) 1.2px, transparent 1.4px);
+        background-size: 24px 24px;
+        color: var(--ink);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      .tile {
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+        background: var(--marker);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 18px;
+        line-height: 1;
+        padding-bottom: 2px;
+        box-sizing: border-box;
+      }
+      .word {
+        font-weight: 800;
+        font-size: 18px;
+        letter-spacing: -0.035em;
       }
       h1 {
-        font-size: 14px;
-        margin: 0 0 8px;
+        font-size: 20px;
+        line-height: 1.1;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        margin: 0 0 6px;
       }
       p {
-        font-size: 12px;
-        color: #57534e;
-        margin: 0 0 12px;
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--muted);
+        margin: 0 0 14px;
         word-break: break-all;
       }
       button {
         width: 100%;
-        padding: 8px 12px;
-        border: none;
-        border-radius: 6px;
-        background: #1d4ed8;
-        color: #fff;
-        font-weight: 500;
+        padding: 10px 14px;
+        border: 2px solid var(--ink);
+        border-radius: 999px;
+        background: var(--marker);
+        color: var(--ink);
+        font: inherit;
+        font-weight: 800;
+        font-size: 14px;
+        box-shadow: 4px 4px 0 var(--ink);
         cursor: pointer;
+        transition: transform 120ms ease, box-shadow 120ms ease;
+      }
+      button:hover:not(:disabled) {
+        transform: translate(-1px, -1px);
+        box-shadow: 5px 5px 0 var(--ink);
+      }
+      button:active:not(:disabled) {
+        transform: translate(3px, 3px);
+        box-shadow: 1px 1px 0 var(--ink);
       }
       button:disabled {
-        opacity: 0.5;
+        background: transparent;
+        box-shadow: none;
+        border-style: dashed;
+        color: var(--muted);
+        border-color: var(--muted);
         cursor: not-allowed;
+      }
+      button:focus-visible {
+        outline: 2px solid #2f4bd8;
+        outline-offset: 3px;
+      }
+      .hand {
+        display: block;
+        margin-top: 12px;
+        font-family: Caveat, "Segoe Print", "Bradley Hand", cursive;
+        font-weight: 700;
+        font-size: 18px;
+        color: var(--hand);
+        transform: rotate(-3deg);
+        text-align: right;
       }
     </style>
   </head>
   <body>
+    <div class="brand"><span class="tile" aria-hidden="true">k</span><span class="word">kuraso</span></div>
     <h1>Save to Kuraso</h1>
     <p id="status">Inspecting current tab…</p>
-    <button id="sendBtn" disabled>Open in Kuraso Desktop</button>
+    <button id="sendBtn" disabled>Open in Kuraso</button>
+    <span class="hand" aria-hidden="true">read · mark · keep</span>
     <script src="popup.js"></script>
   </body>
 </html>

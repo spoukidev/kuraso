@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { Collection, PaperMeta, ReadingStatus } from "@kuraso/formats";
 import { formatCitation, type CitationStyle } from "@kuraso/exporters";
-import { BookOpen, Copy, Edit3, FileText, FolderPlus, Plus, Search, Table2, Upload, X } from "lucide-react";
+import { Copy, Edit3, FileText, FolderPlus, Plus, Search, Table2, Upload, X } from "lucide-react";
 
 interface LibraryViewProps {
   title: string;
@@ -108,21 +108,21 @@ export function LibraryView({
     <div className="kuraso-library-view">
       <div className="kuraso-library-header">
         <div>
-          <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 600 }}>{title}</h2>
-          <span style={{ fontSize: "0.78rem", color: "var(--kuraso-text-muted)" }}>
+          <h2 className="kuraso-library-title">{title}</h2>
+          <span className="kuraso-library-count">
             {sorted.length} {sorted.length === 1 ? "paper" : "papers"}
           </span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <div className="kuraso-library-tools">
           <div style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
             <Search
               size={14}
-              style={{ position: "absolute", insetInlineStart: 10, color: "var(--kuraso-text-muted)" }}
+              style={{ position: "absolute", insetInlineStart: 12, color: "var(--kuraso-text-muted)" }}
             />
             <input
               className="kuraso-input"
-              style={{ paddingInlineStart: 30, minWidth: 220 }}
+              style={{ paddingInlineStart: 32, minWidth: 230, borderRadius: 999 }}
               placeholder="Search papers, authors, tags…"
               value={searchQuery}
               onChange={(e) => onSearchQueryChange(e.target.value)}
@@ -172,7 +172,6 @@ export function LibraryView({
           <select
             className="kuraso-input"
             aria-label="Citation copy style"
-            style={{ fontSize: "0.78rem" }}
             value={citeStyle}
             onChange={(e) => setCiteStyle(e.target.value as CitationStyle)}
           >
@@ -190,12 +189,39 @@ export function LibraryView({
 
       {sorted.length === 0 ? (
         <div className="kuraso-empty-state">
-          <BookOpen size={34} strokeWidth={1.5} />
-          <p style={{ margin: 0, fontSize: "0.92rem" }}>
-            {searchQuery
-              ? "No papers match your search."
-              : "Drop academic PDFs here, click Import PDF, or add a paper by DOI / arXiv ID."}
-          </p>
+          {searchQuery ? (
+            <>
+              <h3 className="kuraso-empty-title">
+                Nothing <span className="kuraso-swipe">matches</span> yet.
+              </h3>
+              <p className="kuraso-empty-text">
+                No papers match “{searchQuery}”. Try an author, a tag or a word from the abstract.
+              </p>
+            </>
+          ) : (
+            <>
+              <span className="kuraso-empty-hand" aria-hidden="true">
+                your future self says thanks →
+              </span>
+              <h3 className="kuraso-empty-title">
+                Drop a paper. Start <span className="kuraso-swipe">marking</span>.
+              </h3>
+              <p className="kuraso-empty-text">
+                Drag PDFs anywhere in this window, import one, or add a paper by DOI or arXiv ID.
+                Everything stays on your computer.
+              </p>
+              <div className="kuraso-empty-actions">
+                <button type="button" className="kuraso-primary-btn" onClick={onRequestOpenPdf}>
+                  <FolderPlus size={16} />
+                  <span>Import PDF</span>
+                </button>
+                <button type="button" className="kuraso-icon-btn" onClick={onRequestImportById}>
+                  <Plus size={15} />
+                  <span>DOI / arXiv</span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
       ) : (
         <div className="kuraso-table-wrap">
@@ -226,19 +252,19 @@ export function LibraryView({
                         <FileText size={14} style={{ flexShrink: 0 }} />
                         <span>{paper.title}</span>
                       </button>
-                      <div style={{ fontSize: "0.76rem", color: "var(--kuraso-text-muted)", marginBlockStart: 2 }}>
+                      <div className="kuraso-paper-meta">
                         {paper.authors.length > 0
                           ? paper.authors.map((a) => a.name).join(", ")
                           : "Unknown authors"}
                         {paper.doi ? ` · DOI: ${paper.doi}` : paper.arxivId ? ` · arXiv:${paper.arxivId}` : ""}
                       </div>
                     </td>
-                    <td>{paper.year ?? "—"}</td>
+                    <td style={{ fontFamily: "var(--kuraso-font-mono)", fontSize: 12 }}>{paper.year ?? "—"}</td>
                     <td>{paper.venue ?? "—"}</td>
                     <td>
                       <select
                         className="kuraso-input"
-                        style={{ paddingBlock: 3, fontSize: "0.78rem" }}
+                        style={{ paddingBlock: 4, fontSize: 12, borderRadius: 999 }}
                         value={paper.status}
                         onChange={(e) =>
                           onUpdatePaper({

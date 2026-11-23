@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-21",
+  "updatedAt": "2026-11-23",
   "providers": [
     {
       "id": "google-ai-studio",
@@ -9,11 +9,15 @@
       "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai",
       "freeTier": true,
       "needsCard": false,
-      "lastChecked": "2026-11-21",
-      "rateLimitsNote": "Free tier has per-minute and daily request limits; submitted data may be used to improve services on free tier.",
+      "lastChecked": "2026-11-23",
+      "rateLimitsNote": "Free tier has per-minute and daily request limits; free-tier data may be used to improve Google's services. New keys can no longer use gemini-2.5-* models.",
       "keyGuideUrl": "https://aistudio.google.com/apikey",
-      "defaultModel": "gemini-2.5-flash",
-      "recommendedModels": ["gemini-2.5-flash", "gemini-2.5-pro"]
+      "defaultModel": "gemini-flash-latest",
+      "recommendedModels": [
+        "gemini-flash-latest",
+        "gemini-3.5-flash-lite",
+        "gemini-3.8-flash"
+      ]
     },
     {
       "id": "groq",
@@ -22,11 +26,14 @@
       "baseUrl": "https://api.groq.com/openai/v1",
       "freeTier": true,
       "needsCard": false,
-      "lastChecked": "2026-11-21",
-      "rateLimitsNote": "Generous free-tier rate limits for fast open-weight models.",
+      "lastChecked": "2026-11-23",
+      "rateLimitsNote": "Generous free-tier rate limits for fast open-weight models. Llama 3.x models were retired on 16 Aug 2026.",
       "keyGuideUrl": "https://console.groq.com/keys",
-      "defaultModel": "llama-3.3-70b-versatile",
-      "recommendedModels": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+      "defaultModel": "openai/gpt-oss-120b",
+      "recommendedModels": [
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b"
+      ]
     },
     {
       "id": "openrouter-free",
@@ -35,11 +42,14 @@
       "baseUrl": "https://openrouter.ai/api/v1",
       "freeTier": true,
       "needsCard": false,
-      "lastChecked": "2026-11-21",
-      "rateLimitsNote": "Models suffixed with :free require no credit card; daily limits apply.",
+      "lastChecked": "2026-11-23",
+      "rateLimitsNote": "openrouter/free picks an available free model for each request. Models ending in :free need no credit card; daily limits apply and free models rotate often.",
       "keyGuideUrl": "https://openrouter.ai/keys",
-      "defaultModel": "meta-llama/llama-3.3-70b-instruct:free",
-      "recommendedModels": ["meta-llama/llama-3.3-70b-instruct:free"]
+      "defaultModel": "openrouter/free",
+      "recommendedModels": [
+        "openrouter/free",
+        "meta-llama/llama-3.3-70b-instruct:free"
+      ]
     },
     {
       "id": "ollama",
@@ -53,7 +63,11 @@
       "lastChecked": "2026-11-21",
       "keyGuideUrl": "https://ollama.com/download",
       "defaultModel": "llama3.1:8b",
-      "recommendedModels": ["llama3.1:8b", "qwen2.5:7b", "mistral:7b"]
+      "recommendedModels": [
+        "llama3.1:8b",
+        "qwen2.5:7b",
+        "mistral:7b"
+      ]
     },
     {
       "id": "anthropic",
@@ -65,7 +79,10 @@
       "lastChecked": "2026-11-21",
       "keyGuideUrl": "https://console.anthropic.com/settings/keys",
       "defaultModel": "claude-sonnet-4-20250514",
-      "recommendedModels": ["claude-sonnet-4-20250514", "claude-3-5-haiku-latest"]
+      "recommendedModels": [
+        "claude-sonnet-4-20250514",
+        "claude-3-5-haiku-latest"
+      ]
     },
     {
       "id": "openai",
@@ -77,7 +94,10 @@
       "lastChecked": "2026-11-21",
       "keyGuideUrl": "https://platform.openai.com/api-keys",
       "defaultModel": "gpt-4o-mini",
-      "recommendedModels": ["gpt-4o-mini", "gpt-4o"]
+      "recommendedModels": [
+        "gpt-4o-mini",
+        "gpt-4o"
+      ]
     },
     {
       "id": "custom-openai",

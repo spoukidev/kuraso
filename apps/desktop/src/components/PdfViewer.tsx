@@ -257,7 +257,7 @@ function PdfPageCanvas({
                       ? `2px solid ${style.cssBorder}`
                       : isStrike
                         ? "none"
-                        : `1.5px solid ${style.cssBorder}`,
+                        : "none",
                     borderTop: isStrike ? `2px solid ${style.cssBorder}` : "none",
                     transform: isStrike ? "translateY(50%)" : undefined,
                   }}
@@ -652,16 +652,21 @@ export function PdfViewer({
                 type="button"
                 className="kuraso-color-dot"
                 title={`${SEMANTIC_LABELS[c]} (key ${idx + 1})`}
-                style={{ backgroundColor: st.cssBg, borderColor: st.cssBorder }}
+                aria-label={`Highlight as ${SEMANTIC_LABELS[c]} (key ${idx + 1})`}
+                style={{ backgroundColor: st.cssMarker }}
                 onClick={() => commitSelection(c, "highlight", false)}
-              />
+              >
+                {idx + 1}
+              </button>
             );
           })}
+          <span className="kuraso-toolbar-sep" aria-hidden="true" />
           <button
             type="button"
             className="kuraso-icon-btn"
-            style={{ height: 24, paddingInline: 5 }}
+            style={{ height: 26, paddingInline: 5 }}
             title="Underline"
+            aria-label="Underline"
             onClick={() => commitSelection("blue", "underline", false)}
           >
             <Underline size={13} />
@@ -669,8 +674,9 @@ export function PdfViewer({
           <button
             type="button"
             className="kuraso-icon-btn"
-            style={{ height: 24, paddingInline: 5 }}
+            style={{ height: 26, paddingInline: 5 }}
             title="Strikethrough"
+            aria-label="Strikethrough"
             onClick={() => commitSelection("red", "strikethrough", false)}
           >
             <Strikethrough size={13} />
@@ -701,7 +707,8 @@ export function PdfViewer({
           <button
             type="button"
             className="kuraso-icon-btn"
-            style={{ height: 22, paddingInline: 4 }}
+            style={{ height: 26, paddingInline: 5 }}
+            aria-label="Close"
             onClick={() => setPendingSel(null)}
           >
             <X size={12} />

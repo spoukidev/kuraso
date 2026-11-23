@@ -33,11 +33,34 @@ export const DEFAULT_AI_SETTINGS: AISettings = {
   askBeforeCloudSend: true,
 };
 
+/**
+ * Models that providers have retired (Groq Llama 3.x, 16 Aug 2026) or closed to new
+ * keys (Gemini 2.5, Sept 2026). Saved settings that still point at one of these are
+ * moved to the provider's current default so the free tier keeps working.
+ */
+const RETIRED_MODELS = new Set([
+  "gemini-2.5-flash",
+  "gemini-2.5-pro",
+  "gemini-2.0-flash",
+  "llama-3.3-70b-versatile",
+  "llama-3.1-8b-instant",
+]);
+
+function migrateRetiredModel(settings: AISettings): AISettings {
+  if (!RETIRED_MODELS.has(settings.model)) return settings;
+  const preset = PROVIDER_PRESETS.find((p) => p.id === settings.providerId);
+  if (!preset?.defaultModel || preset.defaultModel === settings.model) return settings;
+  return { ...settings, model: preset.defaultModel };
+}
+
 export function loadAISettings(): AISettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return DEFAULT_AI_SETTINGS;
-    return { ...DEFAULT_AI_SETTINGS, ...(JSON.parse(raw) as Partial<AISettings>) };
+    const merged = { ...DEFAULT_AI_SETTINGS, ...(JSON.parse(raw) as Partial<AISettings>) };
+    const migrated = migrateRetiredModel(merged);
+    if (migrated !== merged) saveAISettings(migrated);
+    return migrated;
   } catch {
     return DEFAULT_AI_SETTINGS;
   }

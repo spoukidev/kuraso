@@ -1,12 +1,15 @@
 import { useState } from "react";
-import { testProviderConnection, type AnswerLanguage, type AnswerStyle } from "@kuraso/ai";
-import { CheckCircle2, ExternalLink, KeyRound, ShieldAlert, X } from "lucide-react";
+import type { AnswerLanguage, AnswerStyle } from "@kuraso/ai";
+import { CheckCircle2, Copy, ExternalLink, KeyRound, ShieldAlert, X } from "lucide-react";
 import { PROVIDER_PRESETS, type AISettings } from "../state/aiStore";
+import { isDesktopRuntime, runChat, saveProviderKey } from "../state/aiBridge";
 
 interface AISettingsModalProps {
   open: boolean;
   settings: AISettings;
   hasKey: boolean;
+  /** Browser preview only: the key kept in memory for this session. */
+  sessionApiKey?: string;
   onClose: () => void;
   onSave: (settings: AISettings, newApiKey: string | null) => void;
   onRemoveKey: () => void;
@@ -16,6 +19,7 @@ export function AISettingsModal({
   open,
   settings,
   hasKey,
+  sessionApiKey,
   onClose,
   onSave,
   onRemoveKey,
@@ -48,14 +52,29 @@ export function AISettingsModal({
   async function handleTest() {
     setTesting(true);
     setTestResult(null);
+    const typedKey = apiKeyInput.trim();
     try {
-      await testProviderConnection({
-        kind: draft.kind,
-        baseUrl: draft.baseUrl,
-        apiKey: apiKeyInput.trim() || undefined,
-        model: draft.model,
+      if (!draft.local && !typedKey && !hasKey) {
+        throw new Error("Paste your API key first — use “Where do I get a key?” above.");
+      }
+      if (!draft.local && !draft.baseUrl.trim()) {
+        throw new Error("Add the provider's Base URL first.");
+      }
+      // Desktop: the Rust core reads the key from the OS keychain, so a newly typed key is stored first.
+      if (typedKey && isDesktopRuntime()) {
+        await saveProviderKey(draft.providerId, typedKey);
+      }
+      await runChat({
+        settings: draft,
+        sessionApiKey: typedKey || sessionApiKey,
+        messages: [{ role: "user", content: "Reply with OK." }],
       });
-      setTestResult({ ok: true, msg: "Connected successfully." });
+      setTestResult({
+        ok: true,
+        msg: typedKey && isDesktopRuntime()
+          ? "Connected. Your key is saved in your system keychain."
+          : "Connected successfully.",
+      });
     } catch (err: unknown) {
       setTestResult({
         ok: false,
@@ -133,22 +152,49 @@ export function AISettingsModal({
                 <div style={{ marginBlockStart: 4, opacity: 0.85 }}>{activePreset.rateLimitsNote}</div>
               )}
               {activePreset.keyGuideUrl && (
-                <a
-                  href={activePreset.keyGuideUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    marginBlockStart: 6,
-                    color: "var(--kuraso-accent)",
-                    textDecoration: "none",
-                  }}
-                >
-                  <span>Where do I get a key?</span>
-                  <ExternalLink size={12} />
-                </a>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBlockStart: 8 }}>
+                  <a
+                    href={activePreset.keyGuideUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      color: "var(--kuraso-accent)",
+                      fontWeight: 700,
+                      textDecoration: "none",
+                    }}
+                  >
+                    <span>Where do I get a key?</span>
+                    <ExternalLink size={12} />
+                  </a>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <code
+                      style={{
+                        fontFamily: "var(--kuraso-font-mono)",
+                        fontSize: 11,
+                        userSelect: "all",
+                        overflowWrap: "anywhere",
+                      }}
+                    >
+                      {activePreset.keyGuideUrl}
+                    </code>
+                    <button
+                      type="button"
+                      className="kuraso-icon-btn"
+                      style={{ height: 24, paddingInline: 6 }}
+                      title="Copy link — open it in your browser"
+                      onClick={() => {
+                        void navigator.clipboard?.writeText(activePreset.keyGuideUrl ?? "");
+                        setTestResult({ ok: true, msg: "Link copied — paste it into your browser." });
+                      }}
+                    >
+                      <Copy size={12} />
+                      <span>Copy</span>
+                    </button>
+                  </span>
+                </div>
               )}
             </div>
           )}
@@ -167,7 +213,7 @@ export function AISettingsModal({
 
           {!draft.local && (
             <label className="kuraso-field">
-              <span>API Key (stored in OS keychain in desktop mode; never saved to files)</span>
+              <span>API key (saved in your system keychain — never in files)</span>
               <div style={{ display: "flex", gap: 6 }}>
                 <input
                   className="kuraso-input"

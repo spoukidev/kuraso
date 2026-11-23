@@ -1,8 +1,9 @@
 import { useState } from "react";
 import type { PaperMeta } from "@kuraso/formats";
-import { buildCollectionPrompt, callProviderChat } from "@kuraso/ai";
+import { buildCollectionPrompt } from "@kuraso/ai";
 import { AlertTriangle, Sparkles, Table2, X } from "lucide-react";
 import type { AISettings } from "../state/aiStore";
+import { runChat } from "../state/aiBridge";
 
 interface CollectionToolsModalProps {
   open: boolean;
@@ -11,6 +12,7 @@ interface CollectionToolsModalProps {
   localAiOnly: boolean;
   settings: AISettings;
   apiKey: string;
+  keyReady: boolean;
   onClose: () => void;
   onOpenSettings: () => void;
 }
@@ -22,6 +24,7 @@ export function CollectionToolsModal({
   localAiOnly,
   settings,
   apiKey,
+  keyReady,
   onClose,
   onOpenSettings,
 }: CollectionToolsModalProps) {
@@ -45,6 +48,11 @@ export function CollectionToolsModal({
       setError("This collection is marked 'Local AI only'. Switch to Ollama in Settings.");
       return;
     }
+    if (!settings.local && !keyReady) {
+      setError(`Add your ${settings.label} API key first — it's free and takes a minute.`);
+      onOpenSettings();
+      return;
+    }
     if (papers.length === 0) {
       setError("Add papers to this view first.");
       return;
@@ -63,11 +71,9 @@ export function CollectionToolsModal({
     setEstTokens(built.estimatedInputTokens);
     setRunning(true);
     try {
-      const { text } = await callProviderChat({
-        kind: settings.kind,
-        baseUrl: settings.baseUrl,
-        apiKey: settings.local ? undefined : apiKey,
-        model: settings.model,
+      const { text } = await runChat({
+        settings,
+        sessionApiKey: apiKey,
         messages: built.messages,
       });
       setOutput(text);

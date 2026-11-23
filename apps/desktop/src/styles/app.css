@@ -1,3 +1,8 @@
+/*
+ * Kuraso desktop — "Highlighter" UI (v2.1)
+ * Loud brand, quiet paper. Tokens live in @kuraso/ui/tokens.css.
+ */
+
 * {
   box-sizing: border-box;
 }
@@ -12,7 +17,26 @@ body,
   background-color: var(--kuraso-bg-canvas);
   color: var(--kuraso-text-primary);
   font-family: var(--kuraso-font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+::selection {
+  background-color: var(--kuraso-selection);
+}
+
+:where(button, a, input, select, textarea, [role="tab"], [tabindex]):focus-visible {
+  outline: 2px solid var(--kuraso-accent);
+  outline-offset: 2px;
 }
 
 .kuraso-shell {
@@ -23,14 +47,14 @@ body,
   overflow: hidden;
 }
 
-/* Top bar */
+/* ───────── Top bar ───────── */
 .kuraso-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--kuraso-space-3);
-  height: 46px;
-  padding-inline: var(--kuraso-space-4);
+  height: 52px;
+  padding-inline: var(--kuraso-space-3) var(--kuraso-space-4);
   background-color: var(--kuraso-bg-surface);
   border-block-end: 1px solid var(--kuraso-border);
   flex-shrink: 0;
@@ -40,9 +64,31 @@ body,
   display: flex;
   align-items: center;
   gap: var(--kuraso-space-2);
-  font-weight: 600;
-  font-size: 0.95rem;
-  letter-spacing: -0.01em;
+  flex-shrink: 0;
+}
+
+.kuraso-brand-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background-color: var(--kuraso-marker);
+  color: var(--kuraso-on-marker);
+  font: 800 20px/1 var(--kuraso-font-ui);
+  font-family: "Bricolage Grotesque", sans-serif;
+  letter-spacing: -0.04em;
+  padding-block-end: 2px;
+  flex-shrink: 0;
+}
+
+.kuraso-brand-word {
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: -0.035em;
+  line-height: 1;
 }
 
 .kuraso-search-trigger {
@@ -50,56 +96,80 @@ body,
   align-items: center;
   justify-content: space-between;
   gap: var(--kuraso-space-4);
-  min-width: 260px;
-  max-width: 420px;
+  min-width: 240px;
+  max-width: 440px;
   flex: 1;
-  padding-inline: var(--kuraso-space-3);
+  padding-inline: 14px 8px;
   padding-block: 6px;
   background-color: var(--kuraso-bg-elevated);
-  border: 1px solid var(--kuraso-border);
-  border-radius: 8px;
+  border: 1.5px solid var(--kuraso-border);
+  border-radius: var(--kuraso-radius-pill);
   color: var(--kuraso-text-muted);
-  font-size: 0.85rem;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: border-color var(--kuraso-duration-fast) ease;
+  transition: border-color var(--kuraso-duration-fast) ease, color var(--kuraso-duration-fast) ease;
 }
 
 .kuraso-search-trigger:hover {
-  border-color: var(--kuraso-accent);
+  border-color: var(--kuraso-border-strong);
   color: var(--kuraso-text-primary);
 }
 
 .kuraso-kbd {
   font-family: var(--kuraso-font-mono);
-  font-size: 0.72rem;
-  padding-inline: 5px;
-  padding-block: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  padding-inline: 6px;
+  padding-block: 1px;
   border: 1px solid var(--kuraso-border);
-  border-radius: 4px;
+  border-block-end-width: 2px;
+  border-radius: var(--kuraso-radius-sm);
   background-color: var(--kuraso-bg-surface);
   color: var(--kuraso-text-secondary);
+  white-space: nowrap;
 }
 
 .kuraso-topbar-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
+.kuraso-topbar-divider {
+  width: 1.5px;
+  height: 20px;
+  margin-inline: 4px;
+  background-color: var(--kuraso-border);
+  flex-shrink: 0;
+}
+
+/* ───────── Buttons ───────── */
 .kuraso-icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 30px;
-  padding-inline: 8px;
-  border: 1px solid transparent;
-  border-radius: 6px;
+  height: 32px;
+  padding-inline: 9px;
+  border: 1.5px solid transparent;
+  border-radius: var(--kuraso-radius-md);
   background: transparent;
   color: var(--kuraso-text-secondary);
-  font-size: 0.82rem;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
-  transition: background-color var(--kuraso-duration-fast) ease, color var(--kuraso-duration-fast) ease;
+  transition: background-color var(--kuraso-duration-fast) ease, color var(--kuraso-duration-fast) ease,
+    border-color var(--kuraso-duration-fast) ease;
+}
+
+.kuraso-icon-btn svg {
+  stroke-width: 2.25;
 }
 
 .kuraso-icon-btn:hover {
@@ -109,12 +179,56 @@ body,
 }
 
 .kuraso-icon-btn[data-active="true"] {
-  background-color: var(--kuraso-accent-soft);
-  color: var(--kuraso-accent);
+  background-color: var(--kuraso-text-primary);
+  color: var(--kuraso-bg-canvas);
   border-color: transparent;
 }
 
-/* Main 3-pane workspace */
+.kuraso-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-inline: 18px;
+  padding-block: 9px;
+  border: 2px solid var(--kuraso-border-strong);
+  border-radius: var(--kuraso-radius-pill);
+  background-color: var(--kuraso-marker);
+  color: var(--kuraso-on-marker);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: var(--kuraso-shadow-sticker);
+  transition: transform var(--kuraso-duration-fast) ease, box-shadow var(--kuraso-duration-fast) ease;
+}
+
+.kuraso-primary-btn svg {
+  stroke-width: 2.5;
+}
+
+.kuraso-primary-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--kuraso-border-strong);
+}
+
+.kuraso-primary-btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 var(--kuraso-border-strong);
+}
+
+.kuraso-primary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+[data-theme="dark"] .kuraso-primary-btn {
+  border-color: var(--kuraso-on-marker);
+}
+
+/* ───────── Workspace ───────── */
 .kuraso-workspace {
   display: flex;
   flex: 1;
@@ -123,7 +237,7 @@ body,
 }
 
 .kuraso-sidebar-left {
-  width: 240px;
+  width: 244px;
   flex-shrink: 0;
   background-color: var(--kuraso-bg-surface);
   border-inline-end: 1px solid var(--kuraso-border);
@@ -131,12 +245,12 @@ body,
   flex-direction: column;
   overflow-y: auto;
   padding-inline: var(--kuraso-space-3);
-  padding-block: var(--kuraso-space-3);
-  gap: var(--kuraso-space-4);
+  padding-block: var(--kuraso-space-4);
+  gap: var(--kuraso-space-6);
 }
 
 .kuraso-sidebar-right {
-  width: 290px;
+  width: 328px;
   flex-shrink: 0;
   background-color: var(--kuraso-bg-surface);
   border-inline-start: 1px solid var(--kuraso-border);
@@ -146,9 +260,9 @@ body,
 }
 
 .kuraso-section-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--kuraso-text-muted);
   margin-block-end: var(--kuraso-space-2);
@@ -158,17 +272,24 @@ body,
 .kuraso-nav-item {
   display: flex;
   align-items: center;
-  gap: var(--kuraso-space-2);
+  gap: 10px;
   width: 100%;
-  padding-inline: var(--kuraso-space-2);
-  padding-block: 6px;
+  padding-inline: 10px;
+  padding-block: 7px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--kuraso-radius-md);
   background: transparent;
   color: var(--kuraso-text-secondary);
-  font-size: 0.85rem;
+  font-size: 14px;
+  font-weight: 600;
   text-align: start;
   cursor: pointer;
+  transition: background-color var(--kuraso-duration-fast) ease;
+}
+
+.kuraso-nav-item svg {
+  stroke-width: 2.25;
+  flex-shrink: 0;
 }
 
 .kuraso-nav-item:hover {
@@ -177,12 +298,44 @@ body,
 }
 
 .kuraso-nav-item[data-active="true"] {
-  background-color: var(--kuraso-accent-soft);
-  color: var(--kuraso-accent);
-  font-weight: 500;
+  position: relative;
+  background-color: var(--kuraso-bg-elevated);
+  color: var(--kuraso-text-primary);
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1.5px var(--kuraso-border-strong);
 }
 
-/* Center reader pane */
+.kuraso-nav-item[data-active="true"] > svg {
+  color: var(--kuraso-on-marker);
+  background-color: var(--kuraso-marker);
+  border-radius: 5px;
+  padding: 2px;
+  width: 19px;
+  height: 19px;
+  margin-inline: -2px;
+}
+
+.kuraso-sidebar-footer {
+  margin-block-start: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-inline: 8px;
+  font-size: 12px;
+  color: var(--kuraso-text-muted);
+}
+
+.kuraso-sidebar-footer .kuraso-hand {
+  font-family: var(--kuraso-font-hand);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--kuraso-hand);
+  transform: rotate(-3deg);
+  transform-origin: left center;
+  line-height: 1;
+}
+
+/* ───────── Center & tabs ───────── */
 .kuraso-center {
   flex: 1;
   min-width: 0;
@@ -192,40 +345,65 @@ body,
   position: relative;
 }
 
+.kuraso-center[data-dragging="true"]::after {
+  content: "Drop PDFs to add them to your library";
+  position: absolute;
+  inset: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2.5px dashed var(--kuraso-border-strong);
+  border-radius: var(--kuraso-radius-xl);
+  background-color: var(--kuraso-hl-yellow-bg);
+  color: var(--kuraso-text-primary);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+  z-index: 50;
+}
+
 .kuraso-tabbar {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   padding-inline: var(--kuraso-space-2);
-  padding-block-start: 6px;
+  padding-block: 6px;
   background-color: var(--kuraso-bg-surface);
   border-block-end: 1px solid var(--kuraso-border);
   overflow-x: auto;
   flex-shrink: 0;
+  scrollbar-width: thin;
 }
 
 .kuraso-tab {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  max-width: 220px;
-  padding-inline: 12px;
-  padding-block: 7px;
-  border: 1px solid transparent;
-  border-block-end: none;
-  border-start-start-radius: 7px;
-  border-start-end-radius: 7px;
+  max-width: 230px;
+  padding-inline: 12px 8px;
+  padding-block: 6px;
+  border: 1.5px solid transparent;
+  border-radius: var(--kuraso-radius-pill);
   background: transparent;
   color: var(--kuraso-text-secondary);
-  font-size: 0.82rem;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
+  flex-shrink: 0;
+}
+
+.kuraso-tab:hover {
+  background-color: var(--kuraso-bg-elevated);
+  color: var(--kuraso-text-primary);
 }
 
 .kuraso-tab[data-active="true"] {
-  background-color: var(--kuraso-bg-canvas);
-  border-color: var(--kuraso-border);
+  background-color: var(--kuraso-bg-elevated);
+  border-color: var(--kuraso-border-strong);
   color: var(--kuraso-text-primary);
-  font-weight: 500;
+  font-weight: 700;
 }
 
 .kuraso-tab-title {
@@ -241,17 +419,17 @@ body,
   border: none;
   background: transparent;
   color: var(--kuraso-text-muted);
-  border-radius: 4px;
-  padding: 2px;
+  border-radius: 50%;
+  padding: 3px;
   cursor: pointer;
 }
 
 .kuraso-tab-close:hover {
-  background-color: var(--kuraso-bg-surface);
+  background-color: var(--kuraso-hl-red-bg);
   color: var(--kuraso-text-primary);
 }
 
-/* Reader toolbar & search bar */
+/* ───────── Reader toolbar & search ───────── */
 .kuraso-reader-toolbar {
   display: flex;
   align-items: center;
@@ -261,7 +439,8 @@ body,
   padding-block: 6px;
   background-color: var(--kuraso-bg-canvas);
   border-block-end: 1px solid var(--kuraso-border);
-  font-size: 0.82rem;
+  font-size: 13px;
+  font-weight: 600;
   flex-shrink: 0;
 }
 
@@ -278,9 +457,10 @@ body,
   padding-inline: var(--kuraso-space-4);
   padding-block: 8px;
   background-color: var(--kuraso-hl-yellow-bg);
-  border-block-end: 1px solid var(--kuraso-hl-yellow-border);
+  border-block-end: 1.5px dashed var(--kuraso-hl-yellow-border);
   color: var(--kuraso-text-primary);
-  font-size: 0.82rem;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .kuraso-search-bar {
@@ -295,20 +475,43 @@ body,
 
 .kuraso-input {
   background-color: var(--kuraso-bg-elevated);
-  border: 1px solid var(--kuraso-border);
-  border-radius: 6px;
-  padding-inline: 10px;
-  padding-block: 5px;
+  border: 1.5px solid var(--kuraso-border);
+  border-radius: var(--kuraso-radius-md);
+  padding-inline: 11px;
+  padding-block: 6px;
   color: var(--kuraso-text-primary);
-  font-size: 0.84rem;
+  font-size: 13px;
+  font-weight: 500;
   outline: none;
+  transition: border-color var(--kuraso-duration-fast) ease;
 }
 
-.kuraso-input:focus {
+.kuraso-input::placeholder {
+  color: var(--kuraso-text-muted);
+}
+
+.kuraso-input:hover {
+  border-color: var(--kuraso-text-muted);
+}
+
+.kuraso-input:focus,
+.kuraso-input:focus-visible {
   border-color: var(--kuraso-accent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--kuraso-accent-soft);
 }
 
-/* PDF scroll container */
+select.kuraso-input {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+textarea.kuraso-input {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* ───────── PDF viewer ───────── */
 .kuraso-pdf-scroll {
   flex: 1;
   overflow-y: auto;
@@ -324,8 +527,8 @@ body,
 .kuraso-pdf-page-wrapper {
   position: relative;
   background-color: #ffffff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  border-radius: 3px;
+  box-shadow: 0 1px 0 var(--kuraso-border), 0 10px 30px -18px rgba(21, 27, 51, 0.35);
+  border-radius: 4px;
   overflow: hidden;
   transition: transform var(--kuraso-duration-fast) ease;
 }
@@ -336,7 +539,7 @@ body,
 }
 
 [data-theme="dark"] .kuraso-pdf-page-wrapper canvas {
-  filter: invert(0.91) hue-rotate(180deg);
+  filter: invert(0.9) hue-rotate(180deg) saturate(0.9);
 }
 
 [data-theme="sepia"] .kuraso-pdf-page-wrapper canvas {
@@ -344,12 +547,13 @@ body,
 }
 
 .kuraso-pdf-page-number {
-  font-size: 0.74rem;
+  font-family: var(--kuraso-font-mono);
+  font-size: 11px;
   color: var(--kuraso-text-muted);
   margin-block-start: -8px;
 }
 
-/* Empty / drop state */
+/* ───────── Empty / drop states ───────── */
 .kuraso-empty-state {
   flex: 1;
   display: flex;
@@ -358,8 +562,73 @@ body,
   justify-content: center;
   text-align: center;
   padding-inline: var(--kuraso-space-6);
-  gap: var(--kuraso-space-3);
+  gap: var(--kuraso-space-4);
   color: var(--kuraso-text-secondary);
+  background-image: radial-gradient(circle, var(--kuraso-grid-dot) 1.2px, transparent 1.4px);
+  background-size: 24px 24px;
+  border-radius: var(--kuraso-radius-xl);
+}
+
+.kuraso-empty-title {
+  margin: 0;
+  max-width: 560px;
+  font-size: 40px;
+  line-height: 1.02;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--kuraso-text-primary);
+  text-wrap: balance;
+}
+
+.kuraso-empty-text {
+  margin: 0;
+  max-width: 440px;
+  font-size: 15px;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.kuraso-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-block-start: 4px;
+}
+
+.kuraso-empty-hand {
+  font-family: var(--kuraso-font-hand);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--kuraso-hand);
+  transform: rotate(-4deg);
+}
+
+.kuraso-swipe {
+  position: relative;
+  z-index: 0;
+  white-space: nowrap;
+  color: var(--kuraso-text-primary);
+}
+
+.kuraso-swipe::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-inline: -0.08em -0.12em;
+  inset-block: 0.5em -0.04em;
+  background-color: var(--kuraso-marker);
+  clip-path: polygon(3% 8%, 100% 0, 97% 92%, 0 100%);
+  transform: rotate(-2deg);
+}
+
+[data-theme="dark"] .kuraso-swipe {
+  color: var(--kuraso-on-marker);
+}
+
+[data-theme="dark"] .kuraso-swipe::before {
+  inset-block: 0.05em -0.04em;
 }
 
 .kuraso-drop-card {
@@ -367,8 +636,8 @@ body,
   width: 100%;
   padding-inline: var(--kuraso-space-6);
   padding-block: 36px;
-  border: 1.5px dashed var(--kuraso-border);
-  border-radius: 14px;
+  border: 2px dashed var(--kuraso-border-strong);
+  border-radius: var(--kuraso-radius-xl);
   background-color: var(--kuraso-bg-surface);
   display: flex;
   flex-direction: column;
@@ -377,52 +646,44 @@ body,
 }
 
 .kuraso-drop-card[data-dragging="true"] {
-  border-color: var(--kuraso-accent);
-  background-color: var(--kuraso-accent-soft);
+  background-color: var(--kuraso-hl-yellow-bg);
 }
 
-.kuraso-primary-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding-inline: 16px;
-  padding-block: 9px;
-  border: none;
-  border-radius: 8px;
-  background-color: var(--kuraso-accent);
-  color: #ffffff;
-  font-size: 0.88rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.kuraso-primary-btn:hover {
-  opacity: 0.92;
-}
-
-/* Right panel tabs */
+/* ───────── Right panel ───────── */
 .kuraso-right-tabs {
   display: flex;
+  gap: 4px;
+  padding: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
   border-block-end: 1px solid var(--kuraso-border);
-  padding-inline: var(--kuraso-space-2);
-  gap: 2px;
 }
 
 .kuraso-right-tab {
-  flex: 1;
-  padding-block: 10px;
-  border: none;
-  border-block-end: 2px solid transparent;
+  flex: 1 0 auto;
+  min-width: 0;
+  padding-block: 7px;
+  padding-inline: 10px;
+  border: 1.5px solid transparent;
+  border-radius: var(--kuraso-radius-pill);
   background: transparent;
   color: var(--kuraso-text-secondary);
-  font-size: 0.8rem;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   cursor: pointer;
 }
 
+.kuraso-right-tab:hover {
+  background-color: var(--kuraso-bg-elevated);
+  color: var(--kuraso-text-primary);
+}
+
 .kuraso-right-tab[data-active="true"] {
-  color: var(--kuraso-accent);
-  border-block-end-color: var(--kuraso-accent);
+  background-color: var(--kuraso-text-primary);
+  color: var(--kuraso-bg-canvas);
 }
 
 .kuraso-right-body {
@@ -432,45 +693,64 @@ body,
   padding-block: var(--kuraso-space-3);
 }
 
+.kuraso-panel-hint {
+  margin: 0;
+  padding: 14px;
+  border: 1.5px dashed var(--kuraso-border);
+  border-radius: var(--kuraso-radius-lg);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--kuraso-text-muted);
+}
+
 .kuraso-outline-item {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  padding-block: 5px;
-  padding-inline-end: 6px;
+  padding-block: 6px;
+  padding-inline-end: 8px;
   border: none;
-  border-radius: 5px;
+  border-radius: var(--kuraso-radius-sm);
   background: transparent;
   color: var(--kuraso-text-primary);
-  font-size: 0.82rem;
+  font-size: 13px;
+  font-weight: 600;
   text-align: start;
   cursor: pointer;
 }
 
 .kuraso-outline-item:hover {
-  background-color: var(--kuraso-bg-elevated);
+  background-color: var(--kuraso-hl-yellow-bg);
 }
 
-/* Command palette modal */
+.kuraso-outline-page {
+  font-family: var(--kuraso-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--kuraso-text-muted);
+  flex-shrink: 0;
+}
+
+/* ───────── Command palette ───────── */
 .kuraso-modal-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.35);
+  background-color: var(--kuraso-scrim);
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding-block-start: 12vh;
+  padding-block-start: 11vh;
   z-index: 100;
 }
 
 .kuraso-palette {
-  width: min(540px, 92vw);
+  width: min(560px, 92vw);
   background-color: var(--kuraso-bg-elevated);
-  border: 1px solid var(--kuraso-border);
-  border-radius: 12px;
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+  border: 2px solid var(--kuraso-border-strong);
+  border-radius: var(--kuraso-radius-lg);
+  box-shadow: var(--kuraso-shadow-sticker);
   overflow: hidden;
 }
 
@@ -478,88 +758,139 @@ body,
   width: 100%;
   border: none;
   border-block-end: 1px solid var(--kuraso-border);
-  padding-inline: 16px;
-  padding-block: 14px;
+  padding-inline: 18px;
+  padding-block: 16px;
   background: transparent;
   color: var(--kuraso-text-primary);
-  font-size: 0.95rem;
+  font-size: 17px;
+  font-weight: 600;
   outline: none;
 }
 
+.kuraso-palette-input::placeholder {
+  color: var(--kuraso-text-muted);
+}
+
 .kuraso-palette-list {
-  max-height: 320px;
+  max-height: 340px;
   overflow-y: auto;
-  padding-block: 6px;
+  padding: 6px;
 }
 
 .kuraso-palette-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   width: 100%;
-  padding-inline: 16px;
+  padding-inline: 12px;
   padding-block: 10px;
   border: none;
+  border-radius: var(--kuraso-radius-md);
   background: transparent;
   color: var(--kuraso-text-primary);
-  font-size: 0.88rem;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   text-align: start;
 }
 
 .kuraso-palette-item:hover,
 .kuraso-palette-item[data-selected="true"] {
-  background-color: var(--kuraso-accent-soft);
-  color: var(--kuraso-accent);
+  background-color: var(--kuraso-hl-yellow-bg);
+  color: var(--kuraso-text-primary);
 }
 
-/* Phase 2: Library View, Table, Chips, Dialogs & Toast */
+/* ───────── Library ───────── */
 .kuraso-library-view {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding-inline: var(--kuraso-space-6);
-  padding-block: var(--kuraso-space-4);
+  padding-inline: var(--kuraso-space-8);
+  padding-block: var(--kuraso-space-6);
   gap: var(--kuraso-space-4);
   overflow: hidden;
 }
 
 .kuraso-library-header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: var(--kuraso-space-3);
   flex-wrap: wrap;
+}
+
+.kuraso-library-title {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.kuraso-library-count {
+  display: inline-block;
+  margin-block-start: 6px;
+  font-family: var(--kuraso-font-hand);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--kuraso-hand);
+}
+
+.kuraso-library-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.kuraso-library-tools > .kuraso-primary-btn {
+  margin-inline-start: auto;
 }
 
 .kuraso-table-wrap {
   flex: 1;
   overflow: auto;
   border: 1px solid var(--kuraso-border);
-  border-radius: 10px;
+  border-radius: var(--kuraso-radius-lg);
   background-color: var(--kuraso-bg-elevated);
 }
 
 .kuraso-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.84rem;
+  font-size: 13px;
 }
 
 .kuraso-table th,
 .kuraso-table td {
-  padding-inline: 12px;
-  padding-block: 10px;
+  padding-inline: 14px;
+  padding-block: 12px;
   border-block-end: 1px solid var(--kuraso-border);
   text-align: start;
   vertical-align: top;
 }
 
+.kuraso-table tbody tr {
+  transition: background-color var(--kuraso-duration-fast) ease;
+}
+
+.kuraso-table tbody tr:hover {
+  background-color: var(--kuraso-bg-canvas);
+}
+
+.kuraso-table tbody tr:last-child td {
+  border-block-end: none;
+}
+
 .kuraso-table th {
-  font-size: 0.74rem;
+  font-size: 11px;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   color: var(--kuraso-text-muted);
   background-color: var(--kuraso-bg-surface);
   position: sticky;
@@ -569,101 +900,166 @@ body,
 
 .kuraso-paper-title-btn {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 8px;
   border: none;
   background: transparent;
   padding: 0;
   color: var(--kuraso-text-primary);
-  font-weight: 500;
-  font-size: 0.86rem;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.3;
   text-align: start;
   cursor: pointer;
 }
 
-.kuraso-paper-title-btn:hover {
-  color: var(--kuraso-accent);
-  text-decoration: underline;
+.kuraso-paper-title-btn svg {
+  margin-block-start: 1px;
 }
 
+.kuraso-paper-title-btn:hover span {
+  background-image: linear-gradient(transparent 55%, var(--kuraso-marker) 55%);
+}
+
+[data-theme="dark"] .kuraso-paper-title-btn:hover span {
+  background-image: linear-gradient(transparent 55%, var(--kuraso-hl-yellow-bg) 55%);
+}
+
+.kuraso-paper-meta {
+  margin-block-start: 4px;
+  padding-inline-start: 22px;
+  font-size: 12px;
+  color: var(--kuraso-text-muted);
+}
+
+/* ───────── Chips ───────── */
 .kuraso-chip {
-  padding-inline: 7px;
-  padding-block: 2px;
-  border-radius: 999px;
-  border: 1px solid var(--kuraso-border);
-  background-color: var(--kuraso-bg-surface);
+  padding-inline: 10px;
+  padding-block: 3px;
+  border-radius: var(--kuraso-radius-pill);
+  border: 1.5px solid var(--kuraso-border);
+  background-color: transparent;
   color: var(--kuraso-text-secondary);
-  font-size: 0.72rem;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
+  transition: border-color var(--kuraso-duration-fast) ease, background-color var(--kuraso-duration-fast) ease;
+}
+
+.kuraso-chip:hover {
+  border-color: var(--kuraso-border-strong);
+  color: var(--kuraso-text-primary);
 }
 
 .kuraso-chip[data-active="true"] {
-  background-color: var(--kuraso-accent-soft);
-  border-color: var(--kuraso-accent);
-  color: var(--kuraso-accent);
-  font-weight: 500;
+  background-color: var(--kuraso-text-primary);
+  border-color: var(--kuraso-text-primary);
+  color: var(--kuraso-bg-canvas);
+  font-weight: 700;
 }
 
+.kuraso-chip[data-tag="true"] {
+  border-style: dashed;
+  cursor: default;
+}
+
+/* ───────── Dialogs ───────── */
 .kuraso-dialog {
   width: min(480px, 92vw);
   background-color: var(--kuraso-bg-elevated);
-  border: 1px solid var(--kuraso-border);
-  border-radius: 12px;
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+  border: 2px solid var(--kuraso-border-strong);
+  border-radius: var(--kuraso-radius-lg);
+  box-shadow: var(--kuraso-shadow-sticker);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  max-height: 84vh;
 }
 
 .kuraso-dialog-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-inline: 16px;
+  gap: 12px;
+  padding-inline: 18px 12px;
   padding-block: 12px;
   border-block-end: 1px solid var(--kuraso-border);
-  font-size: 0.92rem;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.kuraso-dialog-header strong {
+  font-weight: 800;
 }
 
 .kuraso-dialog-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  gap: 14px;
+  padding: 18px;
+  overflow-y: auto;
 }
 
 .kuraso-dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  padding-inline: 16px;
-  padding-block: 12px;
+  align-items: center;
+  gap: 10px;
+  padding-inline: 18px;
+  padding-block: 14px;
   border-block-start: 1px solid var(--kuraso-border);
+  background-color: var(--kuraso-bg-surface);
 }
 
 .kuraso-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 0.78rem;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--kuraso-text-secondary);
 }
 
+/* ───────── Toast ───────── */
 .kuraso-toast {
   position: fixed;
-  inset-block-end: 18px;
-  inset-inline-end: 18px;
+  inset-block-end: 20px;
+  inset-inline-end: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(440px, 90vw);
   background-color: var(--kuraso-text-primary);
-  color: var(--kuraso-bg-elevated);
-  padding-inline: 14px;
+  color: var(--kuraso-bg-canvas);
+  padding-inline: 14px 18px;
   padding-block: 10px;
-  border-radius: 8px;
-  font-size: 0.82rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border-radius: var(--kuraso-radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--kuraso-shadow-note);
   z-index: 200;
+  animation: kuraso-pop var(--kuraso-duration-base) ease-out;
 }
 
-/* Phase 3: Text Layer, Highlight Overlay, Selection Toolbar, Annotation Gathering & Notes Editor */
+.kuraso-toast::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--kuraso-mint);
+  flex-shrink: 0;
+}
+
+@keyframes kuraso-pop {
+  from {
+    transform: translateY(8px) scale(0.98);
+    opacity: 0;
+  }
+}
+
+/* ───────── Highlights, text layer, selection toolbar ───────── */
 .kuraso-annotation-layer {
   position: absolute;
   inset: 0;
@@ -673,7 +1069,7 @@ body,
 
 .kuraso-highlight-box {
   position: absolute;
-  border-radius: 2px;
+  border-radius: 2px 4px 3px 5px;
   mix-blend-mode: multiply;
 }
 
@@ -698,7 +1094,7 @@ body,
 }
 
 .kuraso-text-layer span::selection {
-  background-color: rgba(29, 78, 216, 0.25);
+  background-color: rgba(47, 75, 216, 0.25);
 }
 
 .kuraso-selection-toolbar {
@@ -708,48 +1104,95 @@ body,
   display: flex;
   align-items: center;
   gap: 6px;
-  padding-inline: 10px;
+  padding-inline: 8px;
   padding-block: 6px;
   background-color: var(--kuraso-bg-elevated);
-  border: 1px solid var(--kuraso-border);
-  border-radius: 999px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  border: 2px solid var(--kuraso-border-strong);
+  border-radius: var(--kuraso-radius-pill);
+  box-shadow: var(--kuraso-shadow-sticker);
+  animation: kuraso-pop var(--kuraso-duration-base) ease-out;
+}
+
+.kuraso-toolbar-sep {
+  width: 1.5px;
+  height: 20px;
+  background-color: var(--kuraso-border);
+  flex-shrink: 0;
 }
 
 .kuraso-color-dot {
-  width: 18px;
-  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  border: 2px solid transparent;
-  cursor: pointer;
+  border: 2px solid var(--kuraso-on-marker);
   padding: 0;
-  transition: transform var(--kuraso-duration-fast) ease;
+  color: var(--kuraso-on-marker);
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform var(--kuraso-duration-fast) ease, box-shadow var(--kuraso-duration-fast) ease;
+}
+
+[data-theme="dark"] .kuraso-color-dot {
+  border-color: var(--kuraso-bg-canvas);
 }
 
 .kuraso-color-dot:hover,
 .kuraso-color-dot[data-active="true"] {
-  transform: scale(1.18);
-  outline: 2px solid var(--kuraso-accent);
-  outline-offset: 1px;
+  transform: translateY(-2px) rotate(-8deg);
+  box-shadow: 2px 2px 0 var(--kuraso-border-strong);
 }
 
+/* ───────── Annotation cards ───────── */
 .kuraso-ann-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-inline: 10px;
-  padding-block: 8px;
+  gap: 8px;
+  padding: 12px;
   background-color: var(--kuraso-bg-elevated);
   border: 1px solid var(--kuraso-border);
-  border-inline-start-width: 3px;
-  border-radius: 7px;
+  border-radius: var(--kuraso-radius-lg);
+  transition: border-color var(--kuraso-duration-fast) ease;
+}
+
+.kuraso-ann-card:hover {
+  border-color: var(--kuraso-text-muted);
+}
+
+.kuraso-ann-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.kuraso-ann-label {
+  display: inline-flex;
+  align-items: center;
+  padding-inline: 8px;
+  padding-block: 3px;
+  border-radius: var(--kuraso-radius-sm);
+  color: var(--kuraso-on-marker);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 14px;
+  white-space: nowrap;
 }
 
 .kuraso-ann-jump {
   border: none;
   background: transparent;
   padding: 0;
-  font-size: 0.72rem;
+  font-family: var(--kuraso-font-mono);
+  font-size: 11px;
   font-weight: 500;
   color: var(--kuraso-text-muted);
   cursor: pointer;
@@ -757,146 +1200,280 @@ body,
 
 .kuraso-ann-jump:hover {
   color: var(--kuraso-accent);
+  text-decoration: underline;
 }
 
 .kuraso-ann-quote {
   margin: 0;
-  padding-inline: 8px;
-  padding-block: 5px;
-  border-radius: 5px;
+  padding-inline: 2px;
   font-family: var(--kuraso-font-reading);
-  font-size: 0.82rem;
-  line-height: 1.45;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--kuraso-text-primary);
   cursor: pointer;
 }
 
+.kuraso-ann-quote mark {
+  color: inherit;
+  padding-inline: 2px;
+  border-radius: 3px 5px 4px 6px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.kuraso-ann-sticky {
+  align-self: flex-start;
+  max-width: calc(100% - 10px);
+  margin-inline-start: 4px;
+  padding: 8px 12px 9px;
+  background-color: var(--kuraso-marker);
+  color: var(--kuraso-on-marker);
+  font-family: var(--kuraso-font-hand);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.15;
+  transform: rotate(-1.2deg);
+  box-shadow: var(--kuraso-shadow-note);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+[dir="rtl"] .kuraso-ann-sticky,
+.kuraso-ann-sticky:lang(ar) {
+  font-family: var(--kuraso-font-arabic);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.kuraso-ann-add {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--kuraso-text-muted);
+  cursor: pointer;
+}
+
+.kuraso-ann-add:hover {
+  color: var(--kuraso-text-primary);
+}
+
+/* ───────── Notes ───────── */
 .kuraso-notes-textarea {
   flex: 1;
   min-height: 280px;
   width: 100%;
   resize: none;
-  padding: 10px;
-  border: 1px solid var(--kuraso-border);
-  border-radius: 8px;
+  padding: 12px;
+  border: 1.5px solid var(--kuraso-border);
+  border-radius: var(--kuraso-radius-md);
   background-color: var(--kuraso-bg-elevated);
   color: var(--kuraso-text-primary);
   font-family: var(--kuraso-font-mono);
-  font-size: 0.82rem;
-  line-height: 1.55;
+  font-size: 13px;
+  line-height: 1.6;
   outline: none;
 }
 
 .kuraso-notes-textarea:focus {
   border-color: var(--kuraso-accent);
+  box-shadow: 0 0 0 3px var(--kuraso-accent-soft);
 }
 
 .kuraso-md-preview {
   flex: 1;
   overflow-y: auto;
-  padding: 10px;
+  padding: 14px;
   border: 1px solid var(--kuraso-border);
-  border-radius: 8px;
+  border-radius: var(--kuraso-radius-md);
   background-color: var(--kuraso-bg-elevated);
   font-family: var(--kuraso-font-reading);
-  font-size: 0.88rem;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
 }
 
-/* Phase 4: Grounded BYOK AI Settings & Assistant */
+.kuraso-md-preview h1,
+.kuraso-md-preview h2,
+.kuraso-md-preview h3 {
+  font-family: var(--kuraso-font-ui);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* ───────── Grounded AI ───────── */
 .kuraso-info-box {
-  padding-inline: 10px;
-  padding-block: 8px;
-  border-radius: 7px;
-  border: 1px solid var(--kuraso-border);
-  background-color: var(--kuraso-bg-surface);
-  font-size: 0.78rem;
+  padding-inline: 12px;
+  padding-block: 10px;
+  border-radius: var(--kuraso-radius-md);
+  border: 1.5px dashed var(--kuraso-border);
+  background-color: var(--kuraso-bg-canvas);
+  font-size: 12px;
+  font-weight: 500;
   color: var(--kuraso-text-secondary);
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 .kuraso-ai-answer {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .kuraso-ai-badge {
   display: inline-block;
   align-self: flex-start;
-  font-size: 0.66rem;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding-inline: 6px;
-  padding-block: 2px;
-  border-radius: 4px;
+  letter-spacing: 0.08em;
+  padding-inline: 9px;
+  padding-block: 3px;
+  border-radius: var(--kuraso-radius-pill);
   background-color: var(--kuraso-accent-soft);
   color: var(--kuraso-accent);
-  margin-block-end: 4px;
+  margin-block-end: 6px;
 }
 
 .kuraso-cite-chip {
   display: inline-flex;
   align-items: center;
   margin-inline: 2px;
-  padding-inline: 5px;
-  padding-block: 1px;
-  border: 1px solid var(--kuraso-accent);
-  border-radius: 4px;
+  padding-inline: 6px;
+  padding-block: 0;
+  border: none;
+  border-radius: var(--kuraso-radius-sm);
   background-color: var(--kuraso-accent-soft);
   color: var(--kuraso-accent);
   font-family: var(--kuraso-font-mono);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 18px;
+  vertical-align: 1px;
   cursor: pointer;
+  transition: background-color var(--kuraso-duration-fast) ease, color var(--kuraso-duration-fast) ease;
 }
 
 .kuraso-cite-chip:hover {
-  opacity: 0.85;
+  background-color: var(--kuraso-accent);
+  color: var(--kuraso-on-accent);
 }
 
 .kuraso-unverified-tag {
   display: inline-block;
   margin-inline-start: 4px;
-  padding-inline: 5px;
-  padding-block: 1px;
-  border-radius: 4px;
-  background-color: var(--kuraso-hl-yellow-bg);
-  color: var(--kuraso-hl-yellow-border);
-  font-size: 0.66rem;
-  font-weight: 600;
+  padding-inline: 7px;
+  padding-block: 0;
+  border-radius: var(--kuraso-radius-pill);
+  border: 1.5px dashed var(--kuraso-hl-red-border);
+  background: transparent;
+  color: var(--kuraso-text-primary);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
 }
 
-/* Phase 5: Onboarding & Export */
+/* ───────── Onboarding ───────── */
+.kuraso-onboarding {
+  width: min(600px, 94vw);
+}
+
+.kuraso-onboarding-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 26px 22px 18px;
+  border-block-end: 1px solid var(--kuraso-border);
+  background-color: var(--kuraso-bg-canvas);
+  background-image: radial-gradient(circle, var(--kuraso-grid-dot) 1.2px, transparent 1.4px);
+  background-size: 24px 24px;
+}
+
+.kuraso-onboarding-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.kuraso-onboarding-title {
+  margin: 4px 0 0;
+  font-size: 34px;
+  line-height: 1.02;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.kuraso-onboarding-sub {
+  margin: 0;
+  max-width: 460px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--kuraso-text-secondary);
+}
+
+.kuraso-onboarding-hand {
+  font-family: var(--kuraso-font-hand);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--kuraso-hand);
+  transform: rotate(-4deg);
+  line-height: 1;
+}
+
 .kuraso-onboarding-option {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   width: 100%;
-  padding-inline: 12px;
-  padding-block: 10px;
-  border: 1px solid var(--kuraso-border);
-  border-radius: 8px;
-  background-color: var(--kuraso-bg-surface);
+  padding-inline: 14px;
+  padding-block: 11px;
+  border: 1.5px solid var(--kuraso-border);
+  border-radius: var(--kuraso-radius-md);
+  background-color: var(--kuraso-bg-elevated);
   color: var(--kuraso-text-primary);
   text-align: start;
   cursor: pointer;
-  font-size: 0.84rem;
+  font-size: 14px;
+  transition: border-color var(--kuraso-duration-fast) ease;
+}
+
+.kuraso-onboarding-option strong {
+  font-weight: 800;
+}
+
+.kuraso-onboarding-option:hover {
+  border-color: var(--kuraso-text-muted);
 }
 
 .kuraso-onboarding-option[data-active="true"] {
-  border-color: var(--kuraso-accent);
+  border: 2px solid var(--kuraso-border-strong);
+  padding-inline: 13.5px;
+  padding-block: 10.5px;
+  background-color: var(--kuraso-hl-yellow-bg);
+}
+
+[data-theme="dark"] .kuraso-onboarding-option[data-active="true"],
+[data-theme="dark"] .kuraso-palette-item[data-selected="true"],
+[data-theme="dark"] .kuraso-palette-item:hover {
   background-color: var(--kuraso-accent-soft);
 }
 
-/* v0.5: Clean Reading Mode (Reflow), Focus Mode & Split View */
+/* ───────── Clean Reading Mode, Focus & Split ───────── */
 .kuraso-clean-reader {
   flex: 1;
   overflow-y: auto;
-  padding-inline: var(--kuraso-space-6);
-  padding-block: 32px;
+  padding-inline: var(--kuraso-space-8);
+  padding-block: 40px;
   background-color: var(--kuraso-bg-canvas);
   font-family: var(--kuraso-font-reading);
-  line-height: 1.72;
+  font-weight: 400;
+  line-height: 1.75;
 }
 
 .kuraso-clean-column {
@@ -904,11 +1481,20 @@ body,
   margin-inline: auto;
 }
 
+.kuraso-clean-column > h1 {
+  font-family: var(--kuraso-font-ui);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  font-size: 1.9em;
+  line-height: 1.1 !important;
+}
+
 .kuraso-clean-heading {
   font-family: var(--kuraso-font-ui);
-  font-size: 1.15em;
-  font-weight: 600;
-  margin-block: 1.5em 0.5em;
+  font-size: 1.05em;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  margin-block: 1.6em 0.4em;
 }
 
 .kuraso-clean-paragraph {
@@ -917,11 +1503,19 @@ body,
   transition: opacity var(--kuraso-duration-fast) ease;
 }
 
+.kuraso-clean-paragraph mark {
+  color: inherit;
+  border-radius: 3px 5px 4px 6px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
 .kuraso-clean-pid {
   display: inline-block;
   margin-inline-end: 8px;
   font-family: var(--kuraso-font-mono);
-  font-size: 0.68em;
+  font-size: 0.64em;
+  font-weight: 500;
   color: var(--kuraso-text-muted);
   user-select: none;
 }
@@ -951,7 +1545,7 @@ body,
   flex-direction: column;
 }
 
-/* v1.0: Wiki-links */
+/* ───────── Wiki-links ───────── */
 .kuraso-wikilink {
   display: inline;
   border: none;
@@ -960,8 +1554,14 @@ body,
   color: var(--kuraso-accent);
   font-family: inherit;
   font-size: inherit;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  text-decoration: underline;
-  text-decoration-style: dotted;
+  text-decoration: underline wavy;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+/* ───────── Scrollbars ───────── */
+* {
+  scrollbar-color: var(--kuraso-border) transparent;
 }

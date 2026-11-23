@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, BookOpen, Check } from "lucide-react";
+import { AlertTriangle, Check } from "lucide-react";
 import { TRANSLATIONS, type UILanguage } from "../i18n/translations.mjs";
 
 export type OnboardingAIChoice = "free-cloud" | "paid" | "university" | "local" | "none";
@@ -38,23 +38,31 @@ export function OnboardingModal({
 
   return (
     <div className="kuraso-modal-backdrop" role="dialog" aria-modal="true" aria-label={t.onboardingTitle}>
-      <div className="kuraso-dialog" style={{ width: "min(560px, 94vw)" }}>
-        <div className="kuraso-dialog-header">
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-            <BookOpen size={18} />
-            <strong>{t.onboardingTitle}</strong>
+      <div className="kuraso-dialog kuraso-onboarding">
+        <div className="kuraso-onboarding-hero">
+          <div className="kuraso-onboarding-hero-top">
+            <div className="kuraso-brand">
+              <span className="kuraso-brand-tile" aria-hidden="true">
+                k
+              </span>
+              <span className="kuraso-brand-word">kuraso</span>
+            </div>
+            <span className="kuraso-onboarding-hand" aria-hidden="true">
+              read · mark · keep
+            </span>
           </div>
-          <span style={{ fontSize: "0.74rem", color: "var(--kuraso-text-muted)" }}>v0.2</span>
-        </div>
-
-        <div className="kuraso-dialog-body" style={{ maxHeight: "74vh", overflowY: "auto" }}>
-          <p style={{ margin: 0, fontSize: "0.86rem", color: "var(--kuraso-text-secondary)" }}>
+          <h2 className="kuraso-onboarding-title" dir="auto">
+            {t.onboardingTitle}
+          </h2>
+          <p className="kuraso-onboarding-sub" dir="auto">
             {t.onboardingSubtitle}
           </p>
+        </div>
 
+        <div className="kuraso-dialog-body" style={{ maxHeight: "56vh", overflowY: "auto" }}>
           <div className="kuraso-field">
             <span>{t.chooseLanguage}</span>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button
                 type="button"
                 className="kuraso-chip"
@@ -97,9 +105,9 @@ export function OnboardingModal({
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <strong>{opt.title}</strong>
-                      {selected && <Check size={14} />}
+                      {selected && <Check size={16} strokeWidth={3} />}
                     </div>
-                    <span style={{ fontSize: "0.78rem", color: "var(--kuraso-text-secondary)" }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: "var(--kuraso-text-secondary)" }}>
                       {opt.desc}
                     </span>
                   </button>
@@ -109,7 +117,7 @@ export function OnboardingModal({
           </div>
 
           {aiChoice === "local" && isLowRam && (
-            <div className="kuraso-banner-warning" style={{ borderRadius: 6, border: "1px solid var(--kuraso-hl-yellow-border)" }}>
+            <div className="kuraso-banner-warning" style={{ borderRadius: 10, border: "1.5px dashed var(--kuraso-hl-yellow-border)" }}>
               <AlertTriangle size={15} style={{ flexShrink: 0 }} />
               <span>{t.lowRamWarning}</span>
             </div>

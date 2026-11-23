@@ -1,44 +1,148 @@
 /*
- * Kuraso Design Tokens (Phase 0)
- * - Calm, paper-like visual language (#FAF8F3 light, deep ink #1C1B19)
- * - CSS logical properties only (RTL-ready for Arabic from day 1)
- * - Color-blind-safe semantic highlights with secondary border/pattern cues
- * - Motion <= 150ms, respects prefers-reduced-motion
+ * Kuraso Design Tokens — "Highlighter" identity (v2.1)
+ * - Loud brand, quiet paper: bold Bricolage chrome around a calm Source Serif reading column
+ * - The five highlight markers ARE the brand palette (key idea, method, result, limitation, to-cite)
+ * - Ink outlines + hard "sticker" shadows for brand moments; hairlines everywhere else
+ * - CSS logical properties only (RTL-ready); motion <= 160ms, respects prefers-reduced-motion
+ * - Every text token passes WCAG AA on canvas, surface and elevated in all three themes
  */
+
+/* ---------- Bundled fonts (SIL OFL 1.1, see ./fonts) ---------- */
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("./fonts/bricolage-grotesque-latin-standard-normal.woff2") format("woff2");
+  font-weight: 200 800;
+  font-stretch: 75% 100%;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Source Serif 4";
+  src: url("./fonts/source-serif-4-latin-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Source Serif 4";
+  src: url("./fonts/source-serif-4-latin-400-italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Source Serif 4";
+  src: url("./fonts/source-serif-4-latin-600-normal.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Caveat";
+  src: url("./fonts/caveat-latin-500-normal.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Caveat";
+  src: url("./fonts/caveat-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Sans Arabic";
+  src: url("./fonts/ibm-plex-sans-arabic-arabic-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Sans Arabic";
+  src: url("./fonts/ibm-plex-sans-arabic-arabic-500-normal.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Sans Arabic";
+  src: url("./fonts/ibm-plex-sans-arabic-arabic-700-normal.woff2") format("woff2");
+  font-weight: 600 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("./fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("./fonts/ibm-plex-mono-latin-500-normal.woff2") format("woff2");
+  font-weight: 500 700;
+  font-display: swap;
+}
 
 :root,
 [data-theme="light"] {
-  --kuraso-bg-canvas: #faf8f3;
-  --kuraso-bg-surface: #f3efe6;
+  /* Paper, desk, sheet */
+  --kuraso-bg-canvas: #fffdf5;
+  --kuraso-bg-surface: #f7f3e6;
   --kuraso-bg-elevated: #ffffff;
-  --kuraso-border: #e2dcd0;
-  --kuraso-text-primary: #1c1b19;
-  --kuraso-text-secondary: #57534e;
-  --kuraso-text-muted: #78716c;
-  --kuraso-accent: #1d4ed8;
-  --kuraso-accent-soft: #dbeafe;
+  --kuraso-border: #e6e1cf;
+  --kuraso-border-strong: #151b33;
+  --kuraso-grid-dot: rgba(21, 27, 51, 0.13);
 
-  /* Semantic highlight colors (Okabe-Ito inspired, high-contrast + secondary border) */
-  --kuraso-hl-yellow-bg: rgba(250, 204, 21, 0.34);
-  --kuraso-hl-yellow-border: #ca8a04;
-  --kuraso-hl-green-bg: rgba(34, 197, 94, 0.24);
-  --kuraso-hl-green-border: #15803d;
-  --kuraso-hl-blue-bg: rgba(56, 189, 248, 0.28);
-  --kuraso-hl-blue-border: #0369a1;
-  --kuraso-hl-red-bg: rgba(244, 63, 94, 0.24);
-  --kuraso-hl-red-border: #be123c;
-  --kuraso-hl-purple-bg: rgba(168, 85, 247, 0.24);
-  --kuraso-hl-purple-border: #7e22ce;
+  /* Night ink */
+  --kuraso-text-primary: #151b33;
+  --kuraso-text-secondary: #454b66;
+  --kuraso-text-muted: #5f6480;
+
+  /* Ballpoint blue: links, focus, citations, selected tab */
+  --kuraso-accent: #2f4bd8;
+  --kuraso-accent-soft: #e6eaff;
+  --kuraso-on-accent: #ffffff;
+
+  /* Brand markers (fills only; text on them is always #151b33) */
+  --kuraso-marker: #ffe14a;
+  --kuraso-mint: #7fe3b5;
+  --kuraso-sky: #8ccbff;
+  --kuraso-coral: #ff8a6b;
+  --kuraso-lilac: #c9b8ff;
+  --kuraso-on-marker: #151b33;
+  --kuraso-hand: #c7381f;
+
+  /* Semantic highlights: marker washes + darker edges (3:1+) */
+  --kuraso-hl-yellow-bg: rgba(255, 225, 74, 0.6);
+  --kuraso-hl-yellow-border: #8a6a00;
+  --kuraso-hl-green-bg: rgba(127, 227, 181, 0.6);
+  --kuraso-hl-green-border: #17825a;
+  --kuraso-hl-blue-bg: rgba(140, 203, 255, 0.6);
+  --kuraso-hl-blue-border: #1a6fb8;
+  --kuraso-hl-red-bg: rgba(255, 138, 107, 0.5);
+  --kuraso-hl-red-border: #c7381f;
+  --kuraso-hl-purple-bg: rgba(201, 184, 255, 0.65);
+  --kuraso-hl-purple-border: #6a4fd1;
+
+  --kuraso-scrim: rgba(21, 27, 51, 0.4);
+  --kuraso-shadow-sticker: 4px 4px 0 #151b33;
+  --kuraso-shadow-note: 0 12px 22px -12px rgba(21, 27, 51, 0.45);
+  --kuraso-selection: rgba(47, 75, 216, 0.22);
 
   /* Typography */
-  --kuraso-font-ui: "Inter", system-ui, -apple-system, sans-serif;
+  --kuraso-font-ui: "Bricolage Grotesque", "IBM Plex Sans Arabic", system-ui, -apple-system, "Segoe UI", sans-serif;
   --kuraso-font-reading: "Source Serif 4", "Literata", Georgia, serif;
-  --kuraso-font-arabic: "IBM Plex Sans Arabic", "Noto Naskh Arabic", sans-serif;
-  --kuraso-font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --kuraso-font-hand: "Caveat", "Segoe Print", "Bradley Hand", cursive;
+  --kuraso-font-arabic: "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --kuraso-font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+
+  /* Shape */
+  --kuraso-radius-sm: 6px;
+  --kuraso-radius-md: 10px;
+  --kuraso-radius-lg: 16px;
+  --kuraso-radius-xl: 22px;
+  --kuraso-radius-pill: 999px;
 
   /* Motion */
   --kuraso-duration-fast: 120ms;
-  --kuraso-duration-base: 150ms;
+  --kuraso-duration-base: 160ms;
 
   /* Spacing (used with logical properties: padding-inline, margin-block, etc.) */
   --kuraso-space-1: 0.25rem;
@@ -46,35 +150,60 @@
   --kuraso-space-3: 0.75rem;
   --kuraso-space-4: 1rem;
   --kuraso-space-6: 1.5rem;
+  --kuraso-space-8: 2rem;
 }
 
 [data-theme="sepia"] {
-  --kuraso-bg-canvas: #f4ecd8;
-  --kuraso-bg-surface: #eadfc5;
+  --kuraso-bg-canvas: #f5ecd7;
+  --kuraso-bg-surface: #ece0c3;
   --kuraso-bg-elevated: #fbf5e6;
-  --kuraso-border: #d6c7a3;
-  --kuraso-text-primary: #2c241b;
-  --kuraso-text-secondary: #5c4e3d;
-  --kuraso-text-muted: #7c6c56;
-  --kuraso-accent: #9a3412;
-  --kuraso-accent-soft: #ffedd5;
+  --kuraso-border: #d9c9a5;
+  --kuraso-border-strong: #231c12;
+  --kuraso-grid-dot: rgba(35, 28, 18, 0.14);
+  --kuraso-text-primary: #231c12;
+  --kuraso-text-secondary: #554835;
+  --kuraso-text-muted: #67593f;
+  --kuraso-accent: #2c43c0;
+  --kuraso-accent-soft: #e7e2ef;
+  --kuraso-on-accent: #ffffff;
+  --kuraso-hand: #b23219;
+  --kuraso-hl-red-border: #b23219;
+  --kuraso-shadow-sticker: 4px 4px 0 #231c12;
 }
 
 [data-theme="dark"] {
-  --kuraso-bg-canvas: #161513;
-  --kuraso-bg-surface: #1f1e1b;
-  --kuraso-bg-elevated: #282622;
-  --kuraso-border: #36332e;
-  --kuraso-text-primary: #f5f2eb;
-  --kuraso-text-secondary: #b8b2a6;
-  --kuraso-text-muted: #8a8478;
-  --kuraso-accent: #60a5fa;
-  --kuraso-accent-soft: rgba(96, 165, 250, 0.18);
+  --kuraso-bg-canvas: #0f1328;
+  --kuraso-bg-surface: #151a33;
+  --kuraso-bg-elevated: #1d2342;
+  --kuraso-border: #2b3256;
+  --kuraso-border-strong: #f6f3e8;
+  --kuraso-grid-dot: rgba(246, 243, 232, 0.08);
+  --kuraso-text-primary: #f6f3e8;
+  --kuraso-text-secondary: #b8bcd0;
+  --kuraso-text-muted: #9095ad;
+  --kuraso-accent: #a3b3ff;
+  --kuraso-accent-soft: #252d55;
+  --kuraso-on-accent: #0f1328;
+  --kuraso-hand: #ff8a6b;
+  --kuraso-hl-yellow-bg: rgba(255, 225, 74, 0.3);
+  --kuraso-hl-yellow-border: #ffe14a;
+  --kuraso-hl-green-bg: rgba(127, 227, 181, 0.28);
+  --kuraso-hl-green-border: #7fe3b5;
+  --kuraso-hl-blue-bg: rgba(140, 203, 255, 0.28);
+  --kuraso-hl-blue-border: #8ccbff;
+  --kuraso-hl-red-bg: rgba(255, 138, 107, 0.28);
+  --kuraso-hl-red-border: #ff8a6b;
+  --kuraso-hl-purple-bg: rgba(201, 184, 255, 0.28);
+  --kuraso-hl-purple-border: #c9b8ff;
+  --kuraso-scrim: rgba(0, 0, 0, 0.6);
+  --kuraso-shadow-sticker: 4px 4px 0 #000000;
+  --kuraso-shadow-note: 0 14px 26px -12px rgba(0, 0, 0, 0.7);
+  --kuraso-selection: rgba(163, 179, 255, 0.3);
 }
 
 /* Automatic Arabic typography when RTL is active */
 [dir="rtl"] {
-  --kuraso-font-ui: var(--kuraso-font-arabic), "Inter", system-ui, sans-serif;
+  --kuraso-font-ui: var(--kuraso-font-arabic), "Bricolage Grotesque", system-ui, sans-serif;
 }
 
 /* Isolated LTR container for academic PDFs even under RTL UI */
@@ -89,6 +218,12 @@
   border-inline-end: 1px solid var(--kuraso-border);
   padding-inline: var(--kuraso-space-4);
   padding-block: var(--kuraso-space-3);
+}
+
+/* Dot-grid paper for empty states, onboarding and brand surfaces */
+.kuraso-dots {
+  background-image: radial-gradient(circle, var(--kuraso-grid-dot) 1.2px, transparent 1.4px);
+  background-size: 24px 24px;
 }
 
 @media (prefers-reduced-motion: reduce) {

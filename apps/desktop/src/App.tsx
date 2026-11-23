@@ -54,6 +54,7 @@ import { OnboardingModal, type OnboardingAIChoice } from "./components/Onboardin
 import { ProjectsModal } from "./components/ProjectsModal";
 import { KnowledgeGraphModal } from "./components/KnowledgeGraphModal";
 import { loadProjects, loadRecipes, saveProjects } from "./state/knowledgeStore";
+import { deleteProviderKey, hasProviderKey, saveProviderKey } from "./state/aiBridge";
 import {
   loadAISettings,
   loadCachedSummary,
@@ -153,6 +154,8 @@ export function App() {
   const [aiSettings, setAiSettings] = useState<AISettings>(() => loadAISettings());
   const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
   const [sessionApiKeys, setSessionApiKeys] = useState<Record<string, string>>({});
+  // Providers whose key is stored in the OS keychain (desktop app).
+  const [keychainProviders, setKeychainProviders] = useState<Record<string, boolean>>({});
   const [pendingExplainText, setPendingExplainText] = useState<string | null>(null);
   const [cleanReadingMode, setCleanReadingMode] = useState(false);
   const [splitNotesView, setSplitNotesView] = useState(false);
@@ -188,6 +191,21 @@ export function App() {
   useEffect(() => {
     saveLibraryPapers(papers);
   }, [papers]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void hasProviderKey(aiSettings.providerId).then((stored) => {
+      if (!cancelled) setKeychainProviders((prev) => ({ ...prev, [aiSettings.providerId]: stored }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [aiSettings.providerId]);
+
+  const aiKeyReady =
+    aiSettings.local ||
+    Boolean(sessionApiKeys[aiSettings.providerId]) ||
+    Boolean(keychainProviders[aiSettings.providerId]);
 
   useEffect(() => {
     saveLibraryCollections(collections);
@@ -862,8 +880,10 @@ export function App() {
           >
             <PanelLeft size={16} />
           </button>
-          <BookOpen size={18} />
-          <span>Kuraso</span>
+          <span className="kuraso-brand-tile" aria-hidden="true">
+            k
+          </span>
+          <span className="kuraso-brand-word">kuraso</span>
         </div>
 
         <button
@@ -1111,7 +1131,7 @@ export function App() {
               )}
 
               {collections.length === 0 ? (
-                <p style={{ fontSize: "0.78rem", color: "var(--kuraso-text-muted)", paddingInline: 8, margin: 0 }}>
+                <p style={{ fontSize: 13, color: "var(--kuraso-text-muted)", paddingInline: 10, margin: 0 }}>
                   Click + to organize papers.
                 </p>
               ) : (
@@ -1137,7 +1157,7 @@ export function App() {
                     >
                       <Folder size={14} />
                       <span className="kuraso-tab-title">{col.name}</span>
-                      <span style={{ marginInlineStart: "auto", fontSize: "0.72rem", opacity: 0.7 }}>
+                      <span style={{ marginInlineStart: "auto", fontFamily: "var(--kuraso-font-mono)", fontSize: 11, opacity: 0.75 }}>
                         {col.paperIds.length}
                       </span>
                     </button>
@@ -1181,15 +1201,11 @@ export function App() {
               </div>
             )}
 
-            <div
-              style={{
-                marginBlockStart: "auto",
-                fontSize: "0.74rem",
-                color: "var(--kuraso-text-muted)",
-                paddingInline: 8,
-              }}
-            >
-              Format v{KURASO_FORMAT_VERSION} · v2.0
+            <div className="kuraso-sidebar-footer">
+              <span className="kuraso-hand" aria-hidden="true">
+                read · mark · keep
+              </span>
+              <span>Format v{KURASO_FORMAT_VERSION} · v2.0</span>
             </div>
           </aside>
         )}
@@ -1354,12 +1370,12 @@ export function App() {
               {rightTab === "outline" && (
                 <div>
                   {!activeTab && (
-                    <p style={{ fontSize: "0.82rem", color: "var(--kuraso-text-muted)" }}>
+                    <p className="kuraso-panel-hint">
                       {t.openPdfOutlineHint}
                     </p>
                   )}
                   {activeTab && activeTab.outline.length === 0 && (
-                    <p style={{ fontSize: "0.82rem", color: "var(--kuraso-text-muted)" }}>
+                    <p className="kuraso-panel-hint">
                       {t.noOutlineHint}
                     </p>
                   )}
@@ -1376,7 +1392,7 @@ export function App() {
                         }}
                       >
                         <span>{item.title}</span>
-                        <span style={{ color: "var(--kuraso-text-muted)", fontSize: "0.74rem" }}>
+                        <span className="kuraso-outline-page">
                           p.{item.page}
                         </span>
                       </button>
@@ -1396,7 +1412,7 @@ export function App() {
                     onDeleteAnnotation={handleDeleteAnnotation}
                   />
                 ) : (
-                  <p style={{ fontSize: "0.82rem", color: "var(--kuraso-text-muted)" }}>
+                  <p className="kuraso-panel-hint">
                     Open a PDF to create and gather highlights.
                   </p>
                 ))}
@@ -1411,7 +1427,7 @@ export function App() {
                     onOpenBacklinkSource={handleOpenBacklinkSource}
                   />
                 ) : (
-                  <p style={{ fontSize: "0.82rem", color: "var(--kuraso-text-muted)" }}>
+                  <p className="kuraso-panel-hint">
                     Open a PDF to edit its Markdown notes (`notes.md`).
                   </p>
                 ))}
@@ -1430,6 +1446,7 @@ export function App() {
                     )}
                     settings={aiSettings}
                     apiKey={sessionApiKeys[aiSettings.providerId] ?? ""}
+                    keyReady={aiKeyReady}
                     pendingExplainText={pendingExplainText}
                     onClearPendingExplain={() => setPendingExplainText(null)}
                     onOpenSettings={() => setAiSettingsOpen(true)}
@@ -1443,7 +1460,7 @@ export function App() {
                     }}
                   />
                 ) : (
-                  <p style={{ fontSize: "0.82rem", color: "var(--kuraso-text-muted)" }}>
+                  <p className="kuraso-panel-hint">
                     Open a PDF to summarize or ask grounded questions with your own AI.
                   </p>
                 ))}
@@ -1467,27 +1484,53 @@ export function App() {
       <AISettingsModal
         open={aiSettingsOpen}
         settings={aiSettings}
-        hasKey={Boolean(sessionApiKeys[aiSettings.providerId])}
+        hasKey={
+          Boolean(sessionApiKeys[aiSettings.providerId]) || Boolean(keychainProviders[aiSettings.providerId])
+        }
+        sessionApiKey={sessionApiKeys[aiSettings.providerId]}
         onClose={() => setAiSettingsOpen(false)}
         onSave={(nextSettings, newApiKey) => {
           setAiSettings(nextSettings);
           saveAISettings(nextSettings);
-          if (newApiKey) {
-            setSessionApiKeys((prev) => ({ ...prev, [nextSettings.providerId]: newApiKey }));
-          }
-          showToast(
-            nextSettings.enabled
-              ? `AI ready: ${nextSettings.label}`
-              : "AI assistant disabled.",
-          );
+          void (async () => {
+            if (newApiKey) {
+              try {
+                const inKeychain = await saveProviderKey(nextSettings.providerId, newApiKey);
+                if (inKeychain) {
+                  setKeychainProviders((prev) => ({ ...prev, [nextSettings.providerId]: true }));
+                } else {
+                  setSessionApiKeys((prev) => ({ ...prev, [nextSettings.providerId]: newApiKey }));
+                }
+              } catch (err) {
+                // Keychain unavailable: keep the key for this session so AI still works.
+                setSessionApiKeys((prev) => ({ ...prev, [nextSettings.providerId]: newApiKey }));
+                showToast(err instanceof Error ? err.message : "Key kept for this session only.");
+                return;
+              }
+            } else {
+              const stored = await hasProviderKey(nextSettings.providerId);
+              setKeychainProviders((prev) => ({ ...prev, [nextSettings.providerId]: stored }));
+            }
+            showToast(
+              nextSettings.enabled ? `AI ready: ${nextSettings.label}` : "AI assistant disabled.",
+            );
+          })();
         }}
         onRemoveKey={() => {
+          const providerId = aiSettings.providerId;
           setSessionApiKeys((prev) => {
             const copy = { ...prev };
-            delete copy[aiSettings.providerId];
+            delete copy[providerId];
             return copy;
           });
-          showToast("API key removed from session.");
+          void deleteProviderKey(providerId)
+            .then(() => {
+              setKeychainProviders((prev) => ({ ...prev, [providerId]: false }));
+              showToast("API key removed.");
+            })
+            .catch((err: unknown) =>
+              showToast(err instanceof Error ? err.message : "Could not remove the key."),
+            );
         }}
       />
 
@@ -1502,6 +1545,7 @@ export function App() {
         }
         settings={aiSettings}
         apiKey={sessionApiKeys[aiSettings.providerId] ?? ""}
+        keyReady={aiKeyReady}
         onClose={() => setCollectionToolsOpen(false)}
         onOpenSettings={() => {
           setCollectionToolsOpen(false);

@@ -61,7 +61,7 @@ jobs:
           projectPath: apps/desktop
           tagName: ${{ github.ref_name }}
           releaseName: "Kuraso ${{ github.ref_name }}"
-          releaseBody: "See docs/RELEASE_v0.1.md for installation instructions and release notes."
-          releaseDraft: true
-          prerelease: true
+          releaseBody: "Open-source, local-first desktop reading workspace for students and researchers (Windows, macOS, Linux). Download the installer for your OS below. On Windows SmartScreen, click More info -> Run anyway. On macOS, right-click Kuraso.app -> Open."
+          releaseDraft: false
+          prerelease: false
           args: ${{ matrix.args }}
