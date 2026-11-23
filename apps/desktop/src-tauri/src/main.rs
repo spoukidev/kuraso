@@ -68,7 +68,8 @@ fn import_pdf_to_library(
     year: Option<i32>,
     doi: Option<String>,
 ) -> Result<PaperMeta, String> {
-    let bytes = fs::read(&source_pdf_path).map_err(|e| format!("Failed to read source PDF: {e}"))?;
+    let bytes =
+        fs::read(&source_pdf_path).map_err(|e| format!("Failed to read source PDF: {e}"))?;
     let lib = Library::open_or_init(PathBuf::from(library_path)).map_err(|e| e.to_string())?;
     let meta = lib
         .import_pdf_bytes(&title, &bytes, year, doi)
@@ -104,7 +105,11 @@ fn rebuild_index(library_path: String, index_path: String) -> Result<RebuildStat
 }
 
 #[tauri::command]
-fn search_library(index_path: String, query: String, limit: Option<usize>) -> Result<Vec<SearchHit>, String> {
+fn search_library(
+    index_path: String,
+    query: String,
+    limit: Option<usize>,
+) -> Result<Vec<SearchHit>, String> {
     let idx = SearchIndex::open(&PathBuf::from(index_path)).map_err(|e| e.to_string())?;
     idx.search(&query, limit.unwrap_or(50))
         .map_err(|e| e.to_string())

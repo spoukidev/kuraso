@@ -244,7 +244,11 @@ impl Library {
     }
 
     pub fn load_annotations_raw(&self, slug: &str) -> Result<Option<String>, LibraryError> {
-        let path = self.root.join(PAPERS_DIR).join(slug).join("annotations.json");
+        let path = self
+            .root
+            .join(PAPERS_DIR)
+            .join(slug)
+            .join("annotations.json");
         if path.is_file() {
             Ok(Some(fs::read_to_string(path)?))
         } else {
@@ -253,7 +257,11 @@ impl Library {
     }
 
     pub fn save_annotations_raw(&self, slug: &str, json: &str) -> Result<(), LibraryError> {
-        let path = self.root.join(PAPERS_DIR).join(slug).join("annotations.json");
+        let path = self
+            .root
+            .join(PAPERS_DIR)
+            .join(slug)
+            .join("annotations.json");
         write_atomic(&path, json.as_bytes())?;
         Ok(())
     }
@@ -355,7 +363,11 @@ impl Library {
     }
 
     pub fn save_paper_meta(&self, meta: &PaperMeta) -> Result<(), LibraryError> {
-        let meta_path = self.root.join(PAPERS_DIR).join(&meta.slug).join("meta.json");
+        let meta_path = self
+            .root
+            .join(PAPERS_DIR)
+            .join(&meta.slug)
+            .join("meta.json");
         write_atomic(&meta_path, &serde_json::to_vec_pretty(meta)?)?;
         Ok(())
     }
@@ -391,11 +403,7 @@ fn is_conflict_filename(name: &str) -> bool {
     lower.contains("conflicted copy") || lower.contains(".sync-conflict-")
 }
 
-fn scan_dir_for_conflicts(
-    root: &Path,
-    dir: &Path,
-    out: &mut Vec<SyncConflict>,
-) -> io::Result<()> {
+fn scan_dir_for_conflicts(root: &Path, dir: &Path, out: &mut Vec<SyncConflict>) -> io::Result<()> {
     if !dir.is_dir() {
         return Ok(());
     }

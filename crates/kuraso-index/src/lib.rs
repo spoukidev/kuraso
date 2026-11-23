@@ -159,7 +159,12 @@ impl SearchIndex {
             tx.execute(
                 "INSERT INTO collections (id, name, parent_id, local_ai_only)
                  VALUES (?1, ?2, ?3, ?4)",
-                params![col.id, col.name, col.parent_id, i32::from(col.local_ai_only)],
+                params![
+                    col.id,
+                    col.name,
+                    col.parent_id,
+                    i32::from(col.local_ai_only)
+                ],
             )?;
             for paper_id in &col.paper_ids {
                 tx.execute(
