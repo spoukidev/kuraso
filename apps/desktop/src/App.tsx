@@ -28,6 +28,7 @@ import {
   Inbox,
   Library as LibraryIcon,
   Moon,
+  Network,
   PanelLeft,
   PanelRight,
   Plus,
@@ -51,6 +52,7 @@ import { AISettingsModal } from "./components/AISettingsModal";
 import { AssistantPanel } from "./components/AssistantPanel";
 import { OnboardingModal, type OnboardingAIChoice } from "./components/OnboardingModal";
 import { ProjectsModal } from "./components/ProjectsModal";
+import { KnowledgeGraphModal } from "./components/KnowledgeGraphModal";
 import { loadProjects, loadRecipes, saveProjects } from "./state/knowledgeStore";
 import {
   loadAISettings,
@@ -158,6 +160,7 @@ export function App() {
   const [collectionToolsOpen, setCollectionToolsOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>(() => loadProjects());
   const [projectsOpen, setProjectsOpen] = useState(false);
+  const [graphOpen, setGraphOpen] = useState(false);
   const [recipes] = useState<AIRecipe[]>(() => loadRecipes());
   const [jumpToPage, setJumpToPage] = useState<number | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -903,6 +906,15 @@ export function App() {
           <button
             type="button"
             className="kuraso-icon-btn"
+            title="Knowledge Graph"
+            onClick={() => setGraphOpen(true)}
+          >
+            <Network size={15} />
+            <span>Graph</span>
+          </button>
+          <button
+            type="button"
+            className="kuraso-icon-btn"
             title="Research Projects (Thesis / Paper Workspaces)"
             onClick={() => setProjectsOpen(true)}
           >
@@ -1177,7 +1189,7 @@ export function App() {
                 paddingInline: 8,
               }}
             >
-              Format v{KURASO_FORMAT_VERSION} · v1.0
+              Format v{KURASO_FORMAT_VERSION} · v2.0
             </div>
           </aside>
         )}
@@ -1495,6 +1507,16 @@ export function App() {
           setCollectionToolsOpen(false);
           setAiSettingsOpen(true);
         }}
+      />
+
+      <KnowledgeGraphModal
+        open={graphOpen}
+        papers={papers}
+        collections={collections}
+        projects={projects}
+        notesByPaper={notesByPaper}
+        onClose={() => setGraphOpen(false)}
+        onOpenPaper={openPaperInReader}
       />
 
       <ProjectsModal

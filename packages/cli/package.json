@@ -1,0 +1,12 @@
+{
+  "name": "@kuraso/cli",
+  "version": "2.0.0",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "bin": {
+    "kuraso": "./bin/kuraso.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  }
+}

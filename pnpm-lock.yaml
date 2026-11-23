@@ -85,6 +85,8 @@ importers:
         specifier: workspace:*
         version: link:../formats
 
+  packages/cli: {}
+
   packages/exporters:
     dependencies:
       '@kuraso/formats':
@@ -94,6 +96,12 @@ importers:
   packages/formats: {}
 
   packages/importers:
+    dependencies:
+      '@kuraso/formats':
+        specifier: workspace:*
+        version: link:../formats
+
+  packages/plugin-sdk:
     dependencies:
       '@kuraso/formats':
         specifier: workspace:*
