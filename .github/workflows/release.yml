@@ -47,6 +47,9 @@ jobs:
       - name: Fetch PDFium shared library for target OS
         run: node scripts/fetch-pdfium.mjs
 
+      - name: Generate platform icons (.ico / .icns / .png)
+        run: pnpm --filter @kuraso/desktop tauri icon src-tauri/icons/icon.png
+
       - name: Run full test suite
         run: npm run test:all
 
