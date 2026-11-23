@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { Collection, PaperMeta, ReadingStatus } from "@kuraso/formats";
-import { BookOpen, Edit3, FileText, FolderPlus, Plus, Search, X } from "lucide-react";
+import { formatCitation, type CitationStyle } from "@kuraso/exporters";
+import { BookOpen, Copy, Edit3, FileText, FolderPlus, Plus, Search, Table2, Upload, X } from "lucide-react";
 
 interface LibraryViewProps {
   title: string;
@@ -13,6 +14,9 @@ interface LibraryViewProps {
   onTogglePaperCollection: (paperId: string, collectionId: string) => void;
   onRequestOpenPdf: () => void;
   onRequestImportById: () => void;
+  onRequestImportBibtex?: () => void;
+  onOpenCollectionTools?: () => void;
+  onNotify?: (msg: string) => void;
   hasBytesMap: Record<string, boolean>;
 }
 
@@ -37,9 +41,13 @@ export function LibraryView({
   onTogglePaperCollection,
   onRequestOpenPdf,
   onRequestImportById,
+  onRequestImportBibtex,
+  onOpenCollectionTools,
+  onNotify,
   hasBytesMap,
 }: LibraryViewProps) {
   const [sortBy, setSortBy] = useState<SortField>("addedAt");
+  const [citeStyle, setCiteStyle] = useState<CitationStyle>("apa");
   const [editing, setEditing] = useState<PaperMeta | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editAuthors, setEditAuthors] = useState("");
@@ -136,6 +144,42 @@ export function LibraryView({
             <Plus size={15} />
             <span>DOI / arXiv</span>
           </button>
+
+          {onRequestImportBibtex && (
+            <button
+              type="button"
+              className="kuraso-icon-btn"
+              title="Import BibTeX / Zotero .bib file"
+              onClick={onRequestImportBibtex}
+            >
+              <Upload size={14} />
+              <span>.bib / Zotero</span>
+            </button>
+          )}
+
+          {onOpenCollectionTools && (
+            <button
+              type="button"
+              className="kuraso-icon-btn"
+              title="Compare papers or chat with this collection"
+              onClick={onOpenCollectionTools}
+            >
+              <Table2 size={14} />
+              <span>Compare AI</span>
+            </button>
+          )}
+
+          <select
+            className="kuraso-input"
+            aria-label="Citation copy style"
+            style={{ fontSize: "0.78rem" }}
+            value={citeStyle}
+            onChange={(e) => setCiteStyle(e.target.value as CitationStyle)}
+          >
+            <option value="apa">Cite: APA</option>
+            <option value="ieee">Cite: IEEE</option>
+            <option value="acm">Cite: ACM</option>
+          </select>
 
           <button type="button" className="kuraso-primary-btn" onClick={onRequestOpenPdf}>
             <FolderPlus size={15} />
@@ -234,14 +278,28 @@ export function LibraryView({
                       </div>
                     </td>
                     <td>
-                      <button
-                        type="button"
-                        className="kuraso-icon-btn"
-                        title="Edit metadata"
-                        onClick={() => startEdit(paper)}
-                      >
-                        <Edit3 size={14} />
-                      </button>
+                      <div style={{ display: "inline-flex", gap: 4 }}>
+                        <button
+                          type="button"
+                          className="kuraso-icon-btn"
+                          title={`Copy ${citeStyle.toUpperCase()} citation`}
+                          onClick={() => {
+                            const formatted = formatCitation(paper, citeStyle);
+                            void navigator.clipboard?.writeText(formatted);
+                            onNotify?.(`Copied ${citeStyle.toUpperCase()} citation.`);
+                          }}
+                        >
+                          <Copy size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          className="kuraso-icon-btn"
+                          title="Edit metadata"
+                          onClick={() => startEdit(paper)}
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

@@ -7,7 +7,7 @@ import {
   type PaperMeta,
   type PaperStructure,
 } from "@kuraso/formats";
-import type { FetchedMetadata } from "@kuraso/importers";
+import { parseBibtex, type FetchedMetadata } from "@kuraso/importers";
 import {
   exportCollectionToBibtex,
   exportPaperToBibtex,
@@ -15,6 +15,7 @@ import {
 } from "@kuraso/exporters";
 import {
   BookOpen,
+  Columns2,
   Download,
   FileText,
   Folder,
@@ -29,11 +30,14 @@ import {
   Search,
   Settings,
   Shield,
+  Sparkles,
   Star,
   Sun,
   X,
 } from "lucide-react";
 import { PdfViewer } from "./components/PdfViewer";
+import { CleanReadingView } from "./components/CleanReadingView";
+import { CollectionToolsModal } from "./components/CollectionToolsModal";
 import { CommandPalette, type PaletteCommand } from "./components/CommandPalette";
 import { LibraryView } from "./components/LibraryView";
 import { ImportByIdModal } from "./components/ImportByIdModal";
@@ -142,11 +146,16 @@ export function App() {
   const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
   const [sessionApiKeys, setSessionApiKeys] = useState<Record<string, string>>({});
   const [pendingExplainText, setPendingExplainText] = useState<string | null>(null);
+  const [cleanReadingMode, setCleanReadingMode] = useState(false);
+  const [splitNotesView, setSplitNotesView] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [collectionToolsOpen, setCollectionToolsOpen] = useState(false);
   const [jumpToPage, setJumpToPage] = useState<number | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const bibInputRef = useRef<HTMLInputElement | null>(null);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -560,6 +569,41 @@ export function App() {
     [aiSettings, uiLang],
   );
 
+  const handleImportBibtexFile = useCallback(
+    async (file: File | undefined) => {
+      if (!file) return;
+      const raw = await file.text();
+      const entries = parseBibtex(raw);
+      if (entries.length === 0) {
+        showToast("No valid BibTeX entries found in file.");
+        return;
+      }
+      let added = 0;
+      for (const entry of entries) {
+        const syntheticHash = await sha256Hex(
+          new TextEncoder().encode(entry.doi ?? entry.arxivId ?? entry.title),
+        );
+        if (findDuplicatePaper(papers, syntheticHash, entry.doi)) continue;
+        const paper = createPaperRecord({
+          title: entry.title,
+          authors: entry.authors,
+          year: entry.year,
+          venue: entry.venue,
+          doi: entry.doi,
+          arxivId: entry.arxivId,
+          url: entry.url,
+          abstract: entry.abstract,
+          fileHash: syntheticHash,
+        });
+        setPapers((prev) => [paper, ...prev]);
+        added += 1;
+      }
+      setCenterMode("library");
+      showToast(`Imported ${added} of ${entries.length} BibTeX entries.`);
+    },
+    [papers, showToast],
+  );
+
   // Global keyboard shortcuts
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -576,6 +620,17 @@ export function App() {
       } else if (mod && e.key.toLowerCase() === "f" && centerMode === "reader" && activeTabId) {
         e.preventDefault();
         setSearchOpen(true);
+      } else if (mod && e.key.toLowerCase() === "r" && centerMode === "reader" && activeTabId) {
+        e.preventDefault();
+        setCleanReadingMode((v) => !v);
+      } else if (e.key === "F11") {
+        e.preventDefault();
+        setFocusMode((v) => {
+          const next = !v;
+          setLeftOpen(!next);
+          setRightOpen(!next);
+          return next;
+        });
       } else if (mod && e.key === "[") {
         e.preventDefault();
         setLeftOpen((v) => !v);
@@ -724,6 +779,16 @@ export function App() {
           e.target.value = "";
         }}
       />
+      <input
+        ref={bibInputRef}
+        type="file"
+        accept=".bib,application/x-bibtex,text/plain"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          void handleImportBibtexFile(e.target.files?.[0]);
+          e.target.value = "";
+        }}
+      />
 
       {/* Top Bar */}
       <header className="kuraso-topbar">
@@ -753,6 +818,30 @@ export function App() {
         </button>
 
         <div className="kuraso-topbar-actions">
+          {centerMode === "reader" && activeTab && (
+            <>
+              <button
+                type="button"
+                className="kuraso-icon-btn"
+                data-active={cleanReadingMode ? "true" : "false"}
+                title="Toggle Clean Reading Mode (Ctrl+R)"
+                onClick={() => setCleanReadingMode((v) => !v)}
+              >
+                <Sparkles size={14} />
+                <span>Reflow</span>
+              </button>
+              <button
+                type="button"
+                className="kuraso-icon-btn"
+                data-active={splitNotesView ? "true" : "false"}
+                title="Toggle Split View (Paper + Notes)"
+                onClick={() => setSplitNotesView((v) => !v)}
+              >
+                <Columns2 size={14} />
+                <span>Split</span>
+              </button>
+            </>
+          )}
           <button
             type="button"
             className="kuraso-icon-btn"
@@ -1021,7 +1110,7 @@ export function App() {
                 paddingInline: 8,
               }}
             >
-              Format v{KURASO_FORMAT_VERSION} · v0.2
+              Format v{KURASO_FORMAT_VERSION} · v0.5 Beta
             </div>
           </aside>
         )}
@@ -1071,24 +1160,51 @@ export function App() {
           )}
 
           {centerMode === "reader" && activeTab ? (
-            <PdfViewer
-              doc={activeTab}
-              annotations={activeAnnotations}
-              jumpToPage={jumpToPage}
-              searchOpen={searchOpen}
-              onCloseSearch={() => setSearchOpen(false)}
-              onToggleSearch={() => setSearchOpen((v) => !v)}
-              onZoomChange={(zoom) => updateActiveTab((t) => ({ ...t, zoom }))}
-              onToggleCrop={() => updateActiveTab((t) => ({ ...t, marginCrop: !t.marginCrop }))}
-              onPageChange={handlePageChange}
-              onCreateAnnotation={handleCreateAnnotation}
-              onExplainSelection={(text) => {
-                setRightOpen(true);
-                setRightTab("assistant");
-                setPendingExplainText(text);
-              }}
-              onDocumentLoaded={handleDocumentLoaded}
-            />
+            <div className="kuraso-split-reader">
+              <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+                {cleanReadingMode ? (
+                  <CleanReadingView
+                    title={activeTab.title}
+                    structure={activeTab.structure}
+                    annotations={activeAnnotations}
+                    focusMode={focusMode}
+                    onToggleFocusMode={() => {
+                      setFocusMode((v) => {
+                        const next = !v;
+                        setLeftOpen(!next);
+                        setRightOpen(!next);
+                        return next;
+                      });
+                    }}
+                    onExitCleanMode={() => setCleanReadingMode(false)}
+                  />
+                ) : (
+                  <PdfViewer
+                    doc={activeTab}
+                    annotations={activeAnnotations}
+                    jumpToPage={jumpToPage}
+                    searchOpen={searchOpen}
+                    onCloseSearch={() => setSearchOpen(false)}
+                    onToggleSearch={() => setSearchOpen((v) => !v)}
+                    onZoomChange={(zoom) => updateActiveTab((t) => ({ ...t, zoom }))}
+                    onToggleCrop={() => updateActiveTab((t) => ({ ...t, marginCrop: !t.marginCrop }))}
+                    onPageChange={handlePageChange}
+                    onCreateAnnotation={handleCreateAnnotation}
+                    onExplainSelection={(text) => {
+                      setRightOpen(true);
+                      setRightTab("assistant");
+                      setPendingExplainText(text);
+                    }}
+                    onDocumentLoaded={handleDocumentLoaded}
+                  />
+                )}
+              </div>
+              {splitNotesView && (
+                <div className="kuraso-split-notes">
+                  <NotesEditor markdown={activeNotes} onChange={handleNotesChange} />
+                </div>
+              )}
+            </div>
           ) : (
             <LibraryView
               title={libraryViewTitle}
@@ -1103,6 +1219,9 @@ export function App() {
               onTogglePaperCollection={handleTogglePaperCollection}
               onRequestOpenPdf={() => fileInputRef.current?.click()}
               onRequestImportById={() => setImportModalOpen(true)}
+              onRequestImportBibtex={() => bibInputRef.current?.click()}
+              onOpenCollectionTools={() => setCollectionToolsOpen(true)}
+              onNotify={showToast}
               hasBytesMap={hasBytesMap}
             />
           )}
@@ -1212,6 +1331,7 @@ export function App() {
                     paperId={activeTab.id}
                     paperTitle={activeTab.title}
                     structure={activeTab.structure}
+                    annotations={activeAnnotations}
                     scanned={activeTab.scanned}
                     localAiOnly={collections.some(
                       (c) => c.localAiOnly && c.paperIds.includes(activeTab.id),
@@ -1224,6 +1344,10 @@ export function App() {
                     onJumpToPage={(page) => {
                       setCenterMode("reader");
                       setJumpToPage(page);
+                    }}
+                    onExportAnki={(tsv) => {
+                      downloadTextFile(`${activeTab.title}-anki.tsv`, tsv, "text/tab-separated-values;charset=utf-8");
+                      showToast("Downloaded Anki flashcards (.tsv)");
                     }}
                   />
                 ) : (
@@ -1272,6 +1396,24 @@ export function App() {
             return copy;
           });
           showToast("API key removed from session.");
+        }}
+      />
+
+      <CollectionToolsModal
+        open={collectionToolsOpen}
+        collectionName={libraryViewTitle}
+        papers={visiblePapers}
+        localAiOnly={
+          libraryFilter.kind === "collection"
+            ? Boolean(collections.find((c) => c.id === libraryFilter.collectionId)?.localAiOnly)
+            : collections.some((c) => c.localAiOnly)
+        }
+        settings={aiSettings}
+        apiKey={sessionApiKeys[aiSettings.providerId] ?? ""}
+        onClose={() => setCollectionToolsOpen(false)}
+        onOpenSettings={() => {
+          setCollectionToolsOpen(false);
+          setAiSettingsOpen(true);
         }}
       />
 

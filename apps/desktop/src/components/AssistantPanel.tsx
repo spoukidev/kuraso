@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { PaperStructure } from "@kuraso/formats";
+import type { Annotation, PaperStructure } from "@kuraso/formats";
+import { getAnnotationPage, getAnnotationQuote } from "@kuraso/annotations";
+import { exportFlashcardsToAnkiTsv } from "@kuraso/exporters";
 import {
   buildPromptMessages,
+  buildStudyPrompt,
   callProviderChat,
+  parseFlashcards,
   verifyGroundedResponse,
   type AITaskKind,
   type GroundedAnswer,
@@ -25,6 +29,7 @@ interface AssistantPanelProps {
   paperId: string;
   paperTitle: string;
   structure: PaperStructure | null | undefined;
+  annotations?: Annotation[];
   scanned: boolean;
   localAiOnly: boolean;
   settings: AISettings;
@@ -33,6 +38,7 @@ interface AssistantPanelProps {
   onClearPendingExplain: () => void;
   onOpenSettings: () => void;
   onJumpToPage: (page: number) => void;
+  onExportAnki?: (tsv: string) => void;
 }
 
 interface ChatTurn {
@@ -100,6 +106,7 @@ export function AssistantPanel({
   paperId,
   paperTitle,
   structure,
+  annotations = [],
   scanned,
   localAiOnly,
   settings,
@@ -108,6 +115,7 @@ export function AssistantPanel({
   onClearPendingExplain,
   onOpenSettings,
   onJumpToPage,
+  onExportAnki,
 }: AssistantPanelProps) {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [question, setQuestion] = useState("");
@@ -225,6 +233,70 @@ export function AssistantPanel({
     }
   }
 
+  async function runStudyTool(mode: "summarize-highlights" | "flashcards") {
+    setError(null);
+    if (!settings.enabled) {
+      onOpenSettings();
+      return;
+    }
+    if (blockedByLocalPolicy) {
+      setError("This paper belongs to a 'Local AI only' collection. Switch to Ollama in Settings.");
+      return;
+    }
+    if (mode === "summarize-highlights" && annotations.length === 0) {
+      setError("Create at least one highlight in this paper first.");
+      return;
+    }
+
+    const built = buildStudyPrompt(mode, {
+      highlights: annotations.map((a) => ({
+        quote: getAnnotationQuote(a),
+        note: a.note,
+        color: a.color,
+        label: a.label,
+        page: getAnnotationPage(a),
+      })),
+      paragraphs,
+    });
+
+    setRunning(true);
+    try {
+      const { text } = await callProviderChat({
+        kind: settings.kind,
+        baseUrl: settings.baseUrl,
+        apiKey: settings.local ? undefined : apiKey,
+        model: settings.model,
+        messages: built.messages,
+      });
+
+      if (mode === "flashcards") {
+        const cards = parseFlashcards(text);
+        if (cards.length > 0 && onExportAnki) {
+          onExportAnki(exportFlashcardsToAnkiTsv(cards));
+        }
+      }
+
+      const verified = verifyGroundedResponse(
+        text,
+        paragraphs.map((p) => p.id),
+      );
+      setTurns((prev) => [
+        {
+          id: `${Date.now()}`,
+          label: mode === "flashcards" ? "Study Flashcards (Anki)" : "Summary of My Highlights",
+          answer: verified,
+          model: settings.model,
+          estimatedTokens: built.estimatedInputTokens,
+        },
+        ...prev,
+      ]);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Study tool failed.");
+    } finally {
+      setRunning(false);
+    }
+  }
+
   useEffect(() => {
     if (pendingExplainText) {
       const text = pendingExplainText;
@@ -289,6 +361,22 @@ export function AssistantPanel({
           onClick={() => void runTask("structured-summary")}
         >
           Structured Summary
+        </button>
+        <button
+          type="button"
+          className="kuraso-chip"
+          disabled={running}
+          onClick={() => void runStudyTool("summarize-highlights")}
+        >
+          Summarize Highlights
+        </button>
+        <button
+          type="button"
+          className="kuraso-chip"
+          disabled={running}
+          onClick={() => void runStudyTool("flashcards")}
+        >
+          Anki Flashcards
         </button>
         {running && (
           <button

@@ -6,3 +6,4 @@ export {
   parseArxivAtomXml,
 } from "./metadata.mjs";
 export type { FetchedMetadata } from "./metadata.mjs";
+export { parseBibtex } from "./bibtex.mjs";
