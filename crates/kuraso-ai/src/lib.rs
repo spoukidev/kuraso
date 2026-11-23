@@ -94,7 +94,10 @@ fn classify_http_error(status: u16, body: &str) -> AiError {
     if status == 429 || lower.contains("rate limit") {
         return AiError::Provider("Rate limited by provider. Try again shortly.".to_string());
     }
-    AiError::Provider(format!("Provider HTTP {status}: {}", &body[..body.len().min(160)]))
+    // Truncate by characters, not bytes: slicing at byte 160 panics when that
+    // offset falls inside a multi-byte UTF-8 character (e.g. Arabic or accented text).
+    let snippet: String = body.chars().take(160).collect();
+    AiError::Provider(format!("Provider HTTP {status}: {snippet}"))
 }
 
 /// Execute a chat completion request directly from Rust using the key stored in the OS keychain.
@@ -267,5 +270,22 @@ mod tests {
         );
         assert_eq!(res.valid, vec!["P12", "P14"]);
         assert_eq!(res.invalid, vec!["P999"]);
+    }
+
+    #[test]
+    fn http_error_snippet_does_not_split_multibyte_chars() {
+        // 159 ASCII bytes then a 2-byte char straddling byte 160.
+        let body = format!("{}é and more", "a".repeat(159));
+        let AiError::Provider(msg) = classify_http_error(500, &body) else {
+            panic!("expected provider error");
+        };
+        assert!(msg.starts_with("Provider HTTP 500: "));
+        assert!(msg.ends_with('é'));
+
+        let arabic = "خطأ ".repeat(100);
+        let AiError::Provider(msg) = classify_http_error(500, &arabic) else {
+            panic!("expected provider error");
+        };
+        assert_eq!(msg.chars().count(), "Provider HTTP 500: ".len() + 160);
     }
 }
