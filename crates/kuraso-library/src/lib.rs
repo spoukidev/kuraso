@@ -20,7 +20,7 @@ use thiserror::Error;
 pub const LIBRARY_MARKER_FILE: &str = "kuraso-library.json";
 pub const COLLECTIONS_FILE: &str = "collections.json";
 pub const PAPERS_DIR: &str = "papers";
-pub const FORMAT_VERSION: &str = "0.1.0";
+pub const FORMAT_VERSION: &str = "1.0.0";
 
 #[derive(Debug, Error)]
 pub enum LibraryError {

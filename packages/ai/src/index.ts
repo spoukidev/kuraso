@@ -24,3 +24,4 @@ export type {
   HighlightSummaryInput,
   ParsedFlashcard,
 } from "./v05.mjs";
+export { BUILTIN_RECIPES, buildRecipePrompt } from "./recipes.mjs";

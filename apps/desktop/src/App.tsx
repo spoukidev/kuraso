@@ -2,11 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KurasoTheme } from "@kuraso/ui";
 import {
   KURASO_FORMAT_VERSION,
+  type AIRecipe,
   type Annotation,
   type Collection,
   type PaperMeta,
   type PaperStructure,
+  type Project,
 } from "@kuraso/formats";
+import { buildBacklinksIndex, normalizeLinkKey } from "@kuraso/annotations";
 import { parseBibtex, type FetchedMetadata } from "@kuraso/importers";
 import {
   exportCollectionToBibtex,
@@ -15,6 +18,7 @@ import {
 } from "@kuraso/exporters";
 import {
   BookOpen,
+  Briefcase,
   Columns2,
   Download,
   FileText,
@@ -46,6 +50,8 @@ import { NotesEditor } from "./components/NotesEditor";
 import { AISettingsModal } from "./components/AISettingsModal";
 import { AssistantPanel } from "./components/AssistantPanel";
 import { OnboardingModal, type OnboardingAIChoice } from "./components/OnboardingModal";
+import { ProjectsModal } from "./components/ProjectsModal";
+import { loadProjects, loadRecipes, saveProjects } from "./state/knowledgeStore";
 import {
   loadAISettings,
   loadCachedSummary,
@@ -150,6 +156,9 @@ export function App() {
   const [splitNotesView, setSplitNotesView] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [collectionToolsOpen, setCollectionToolsOpen] = useState(false);
+  const [projects, setProjects] = useState<Project[]>(() => loadProjects());
+  const [projectsOpen, setProjectsOpen] = useState(false);
+  const [recipes] = useState<AIRecipe[]>(() => loadRecipes());
   const [jumpToPage, setJumpToPage] = useState<number | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -419,6 +428,55 @@ export function App() {
       });
     },
     [activeTabId],
+  );
+
+  const backlinksIndex = useMemo(() => {
+    const sources = [
+      ...papers.map((p) => ({
+        id: p.id,
+        title: p.title,
+        markdown: notesByPaper[p.id] ?? "",
+      })),
+      ...projects.map((proj) => ({
+        id: proj.id,
+        title: `Project: ${proj.name}`,
+        markdown: proj.draftMarkdown ?? "",
+      })),
+    ];
+    return buildBacklinksIndex(sources);
+  }, [papers, notesByPaper, projects]);
+
+  const activeBacklinks = useMemo(() => {
+    if (!activeTab) return [];
+    const byTitle = backlinksIndex[normalizeLinkKey(activeTab.title)] ?? [];
+    return byTitle.filter((b) => b.sourceId !== activeTab.id);
+  }, [activeTab, backlinksIndex]);
+
+  const handleFollowWikiLink = useCallback(
+    (targetTitle: string) => {
+      const key = normalizeLinkKey(targetTitle);
+      const match = papers.find((p) => normalizeLinkKey(p.title) === key || p.slug === key);
+      if (match) {
+        openPaperInReader(match);
+      } else {
+        setLibrarySearch(targetTitle);
+        setCenterMode("library");
+        showToast(`Filtered library for [[${targetTitle}]]`);
+      }
+    },
+    [papers, openPaperInReader, showToast],
+  );
+
+  const handleOpenBacklinkSource = useCallback(
+    (sourceId: string) => {
+      const paper = papers.find((p) => p.id === sourceId);
+      if (paper) {
+        openPaperInReader(paper);
+      } else if (projects.some((p) => p.id === sourceId)) {
+        setProjectsOpen(true);
+      }
+    },
+    [papers, projects, openPaperInReader],
   );
 
   const handleNotesChange = useCallback(
@@ -845,6 +903,15 @@ export function App() {
           <button
             type="button"
             className="kuraso-icon-btn"
+            title="Research Projects (Thesis / Paper Workspaces)"
+            onClick={() => setProjectsOpen(true)}
+          >
+            <Briefcase size={15} />
+            <span>Projects ({projects.length})</span>
+          </button>
+          <button
+            type="button"
+            className="kuraso-icon-btn"
             title={t.exportMd}
             onClick={handleExportMarkdown}
           >
@@ -1110,7 +1177,7 @@ export function App() {
                 paddingInline: 8,
               }}
             >
-              Format v{KURASO_FORMAT_VERSION} · v0.5 Beta
+              Format v{KURASO_FORMAT_VERSION} · v1.0
             </div>
           </aside>
         )}
@@ -1201,7 +1268,13 @@ export function App() {
               </div>
               {splitNotesView && (
                 <div className="kuraso-split-notes">
-                  <NotesEditor markdown={activeNotes} onChange={handleNotesChange} />
+                  <NotesEditor
+                    markdown={activeNotes}
+                    onChange={handleNotesChange}
+                    backlinks={activeBacklinks}
+                    onFollowWikiLink={handleFollowWikiLink}
+                    onOpenBacklinkSource={handleOpenBacklinkSource}
+                  />
                 </div>
               )}
             </div>
@@ -1318,7 +1391,13 @@ export function App() {
 
               {rightTab === "notes" &&
                 (activeTab ? (
-                  <NotesEditor markdown={activeNotes} onChange={handleNotesChange} />
+                  <NotesEditor
+                    markdown={activeNotes}
+                    onChange={handleNotesChange}
+                    backlinks={activeBacklinks}
+                    onFollowWikiLink={handleFollowWikiLink}
+                    onOpenBacklinkSource={handleOpenBacklinkSource}
+                  />
                 ) : (
                   <p style={{ fontSize: "0.82rem", color: "var(--kuraso-text-muted)" }}>
                     Open a PDF to edit its Markdown notes (`notes.md`).
@@ -1332,6 +1411,7 @@ export function App() {
                     paperTitle={activeTab.title}
                     structure={activeTab.structure}
                     annotations={activeAnnotations}
+                    recipes={recipes}
                     scanned={activeTab.scanned}
                     localAiOnly={collections.some(
                       (c) => c.localAiOnly && c.paperIds.includes(activeTab.id),
@@ -1414,6 +1494,22 @@ export function App() {
         onOpenSettings={() => {
           setCollectionToolsOpen(false);
           setAiSettingsOpen(true);
+        }}
+      />
+
+      <ProjectsModal
+        open={projectsOpen}
+        projects={projects}
+        collections={collections}
+        papers={papers}
+        onClose={() => setProjectsOpen(false)}
+        onSaveProjects={(next) => {
+          setProjects(next);
+          saveProjects(next);
+        }}
+        onExportBibtex={(filename, content) => {
+          downloadTextFile(filename, content, "application/x-bibtex;charset=utf-8");
+          showToast(`Exported ${filename}`);
         }}
       />
 

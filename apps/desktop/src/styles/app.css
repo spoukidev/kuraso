@@ -950,3 +950,18 @@ body,
   display: flex;
   flex-direction: column;
 }
+
+/* v1.0: Wiki-links */
+.kuraso-wikilink {
+  display: inline;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--kuraso-accent);
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}

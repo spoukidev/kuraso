@@ -10,7 +10,7 @@
 export const KURASO_APP_ID = "org.kuraso.desktop";
 export const KURASO_URL_SCHEME = "kuraso";
 export const KURASO_DEFAULT_LIBRARY_DIR = "Documents/Kuraso";
-export const KURASO_FORMAT_VERSION = "0.1.0";
+export const KURASO_FORMAT_VERSION = "1.0.0";
 export const KURASO_COORDINATE_SPACE = "pdf-cropbox-points-bl-unrotated" as const;
 
 export type CoordinateSpace = typeof KURASO_COORDINATE_SPACE;
@@ -154,4 +154,32 @@ export interface ProviderPreset {
   keyGuideUrl: string;
   defaultModel: string;
   recommendedModels: string[];
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string | null;
+  collectionIds: string[];
+  draftMarkdown?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectsFile {
+  version: number;
+  projects: Project[];
+}
+
+export interface AIRecipe {
+  id: string;
+  name: string;
+  description?: string | null;
+  promptTemplate: string;
+  builtIn?: boolean;
+}
+
+export interface RecipesFile {
+  version: number;
+  recipes: AIRecipe[];
 }

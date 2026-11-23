@@ -8,3 +8,9 @@ export {
   filterAndGroupAnnotations,
 } from "./annotations.mjs";
 export type { CreateAnnotationInput, GatheringOptions } from "./annotations.mjs";
+export {
+  normalizeLinkKey,
+  extractWikiLinks,
+  buildBacklinksIndex,
+} from "./wikilinks.mjs";
+export type { WikiLink, BacklinkEntry, NoteSource } from "./wikilinks.mjs";

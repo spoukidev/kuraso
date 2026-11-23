@@ -13,6 +13,8 @@ const SCHEMA_FILES = [
   "meta.schema.json",
   "structure.schema.json",
   "annotations.schema.json",
+  "projects.schema.json",
+  "recipes.schema.json",
 ];
 
 describe("@kuraso/formats JSON schemas", () => {

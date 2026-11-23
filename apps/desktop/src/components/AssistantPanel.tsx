@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Annotation, PaperStructure } from "@kuraso/formats";
+import type { AIRecipe, Annotation, PaperStructure } from "@kuraso/formats";
 import { getAnnotationPage, getAnnotationQuote } from "@kuraso/annotations";
 import { exportFlashcardsToAnkiTsv } from "@kuraso/exporters";
 import {
   buildPromptMessages,
+  buildRecipePrompt,
   buildStudyPrompt,
   callProviderChat,
   parseFlashcards,
@@ -39,6 +40,7 @@ interface AssistantPanelProps {
   onOpenSettings: () => void;
   onJumpToPage: (page: number) => void;
   onExportAnki?: (tsv: string) => void;
+  recipes?: AIRecipe[];
 }
 
 interface ChatTurn {
@@ -116,6 +118,7 @@ export function AssistantPanel({
   onOpenSettings,
   onJumpToPage,
   onExportAnki,
+  recipes = [],
 }: AssistantPanelProps) {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [question, setQuestion] = useState("");
@@ -297,6 +300,54 @@ export function AssistantPanel({
     }
   }
 
+  async function runRecipe(recipe: AIRecipe) {
+    setError(null);
+    if (!settings.enabled) {
+      onOpenSettings();
+      return;
+    }
+    if (blockedByLocalPolicy) {
+      setError("This paper belongs to a 'Local AI only' collection. Switch to Ollama in Settings.");
+      return;
+    }
+    if (scanned || paragraphs.length === 0) {
+      setError("No selectable text extracted for this paper yet.");
+      return;
+    }
+    const built = buildRecipePrompt(recipe, {
+      paragraphs,
+      language: settings.answerLanguage,
+    });
+    setRunning(true);
+    try {
+      const { text } = await callProviderChat({
+        kind: settings.kind,
+        baseUrl: settings.baseUrl,
+        apiKey: settings.local ? undefined : apiKey,
+        model: settings.model,
+        messages: built.messages,
+      });
+      const verified = verifyGroundedResponse(
+        text,
+        paragraphs.map((p) => p.id),
+      );
+      setTurns((prev) => [
+        {
+          id: `${Date.now()}`,
+          label: `Recipe: ${recipe.name}`,
+          answer: verified,
+          model: settings.model,
+          estimatedTokens: built.estimatedInputTokens,
+        },
+        ...prev,
+      ]);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Recipe run failed.");
+    } finally {
+      setRunning(false);
+    }
+  }
+
   useEffect(() => {
     if (pendingExplainText) {
       const text = pendingExplainText;
@@ -378,6 +429,29 @@ export function AssistantPanel({
         >
           Anki Flashcards
         </button>
+        {recipes.length > 0 && (
+          <select
+            className="kuraso-input"
+            style={{ fontSize: "0.74rem", paddingBlock: 2 }}
+            aria-label="Run AI recipe"
+            defaultValue=""
+            disabled={running}
+            onChange={(e) => {
+              const r = recipes.find((rec) => rec.id === e.target.value);
+              e.target.value = "";
+              if (r) void runRecipe(r);
+            }}
+          >
+            <option value="" disabled>
+              Run Recipe…
+            </option>
+            {recipes.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        )}
         {running && (
           <button
             type="button"
