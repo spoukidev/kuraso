@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/brand/kuraso-lockup-tagline.svg" alt="Kuraso — read · mark · keep" width="420">
+  <img src="assets/brand/kuraso-banner.jpg" alt="Kuraso — read · mark · keep. The open-source paper reader that remembers what you read." width="100%">
 </p>
 
 <h1 align="center">Kuraso</h1>

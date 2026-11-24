@@ -6,7 +6,8 @@ The "Highlighter" identity: lowercase **kuraso** in Bricolage Grotesque ExtraBol
 |---|---|
 | `kuraso-wordmark.svg` | Default logo on light backgrounds |
 | `kuraso-wordmark-reverse.svg` | On ink `#151b33` or dark backgrounds |
-| `kuraso-lockup-tagline.svg` | Hero / README header, with the hand-written *read · mark · keep* |
+| `kuraso-banner.jpg` | GitHub repository README banner & social preview (2:1, 1024×512) |
+| `kuraso-lockup-tagline.svg` | Hero / lockup with the hand-written *read · mark · keep* |
 | `kuraso-lockup-bilingual.svg` / `-reverse.svg` | Latin + Arabic (كراسو) |
 | `kuraso-wordmark-mono.svg` | One-colour reproduction |
 | `kuraso-app-icon.svg` | App icon master (source of `apps/desktop/src-tauri/icons/*`) |
