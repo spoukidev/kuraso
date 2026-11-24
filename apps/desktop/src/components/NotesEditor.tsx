@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import type { BacklinkEntry } from "@kuraso/annotations";
 import { Link2 } from "lucide-react";
+import { tr } from "../i18n/tr";
 
 interface NotesEditorProps {
   markdown: string;
@@ -129,7 +130,7 @@ export function NotesEditor({
             data-active={mode === "edit" ? "true" : "false"}
             onClick={() => setMode("edit")}
           >
-            Edit
+            {tr("Edit")}
           </button>
           <button
             type="button"
@@ -137,7 +138,7 @@ export function NotesEditor({
             data-active={mode === "preview" ? "true" : "false"}
             onClick={() => setMode("preview")}
           >
-            Preview
+            {tr("Preview")}
           </button>
         </div>
       </div>
@@ -146,7 +147,7 @@ export function NotesEditor({
         <textarea
           className="kuraso-notes-textarea"
           dir="auto"
-          placeholder="Write Markdown notes (supports [[Paper Title]] wiki-links)…"
+          placeholder={tr("Write Markdown notes (supports [[Paper Title]] wiki-links)…")}
           value={markdown}
           onChange={(e) => onChange(e.target.value)}
         />
@@ -158,7 +159,7 @@ export function NotesEditor({
         <div className="kuraso-info-box">
           <div style={{ display: "flex", alignItems: "center", gap: 5, fontWeight: 600, marginBlockEnd: 4 }}>
             <Link2 size={12} />
-            <span>Backlinks ({backlinks.length})</span>
+            <span>{tr("Backlinks ({n})", { n: backlinks.length })}</span>
           </div>
           {backlinks.map((b) => (
             <button
@@ -168,7 +169,7 @@ export function NotesEditor({
               style={{ paddingInline: 4, fontSize: "0.76rem" }}
               onClick={() => onOpenBacklinkSource?.(b.sourceId)}
             >
-              <span>{b.sourceTitle}</span>
+              <bdi dir="auto">{b.sourceTitle}</bdi>
             </button>
           ))}
         </div>

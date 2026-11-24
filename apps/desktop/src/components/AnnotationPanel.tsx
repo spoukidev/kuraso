@@ -8,6 +8,7 @@ import {
 } from "@kuraso/annotations";
 import { SEMANTIC_HIGHLIGHT_DEFAULTS } from "@kuraso/ui";
 import { Search, Trash2 } from "lucide-react";
+import { tr } from "../i18n/tr";
 
 interface AnnotationPanelProps {
   annotations: Annotation[];
@@ -17,6 +18,16 @@ interface AnnotationPanelProps {
 }
 
 const COLORS: HighlightColor[] = ["yellow", "green", "blue", "red", "purple"];
+
+/** Group keys come from @kuraso/annotations in English; translate them for display only. */
+function groupLabel(group: string): string {
+  const page = /^Page (\d+)$/.exec(group);
+  if (page) return tr("Page {n}", { n: page[1] ?? "" });
+  if (group === "Untagged") return tr("Untagged");
+  const colored = /^(\w+) \((.+)\)$/.exec(group);
+  if (colored) return `${tr(colored[1] ?? "")} · ${tr(colored[2] ?? "").replace(/-/g, " ")}`;
+  return tr(group);
+}
 
 export function AnnotationPanel({
   annotations,
@@ -86,7 +97,7 @@ export function AnnotationPanel({
         <input
           className="kuraso-input"
           style={{ width: "100%", paddingInlineStart: 28, borderRadius: 999 }}
-          placeholder="Filter highlights & notes…"
+          placeholder={tr("Filter highlights & notes…")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -100,7 +111,7 @@ export function AnnotationPanel({
           data-active={colorFilter === "all" ? "true" : "false"}
           onClick={() => setColorFilter("all")}
         >
-          All ({annotations.length})
+          {tr("All ({n})", { n: annotations.length })}
         </button>
         {COLORS.map((c) => {
           const style = SEMANTIC_HIGHLIGHT_DEFAULTS[c];
@@ -110,8 +121,8 @@ export function AnnotationPanel({
               type="button"
               className="kuraso-color-dot"
               data-active={colorFilter === c ? "true" : "false"}
-              title={`${style.key} · ${SEMANTIC_LABELS[c]}`}
-              aria-label={`Filter: ${SEMANTIC_LABELS[c]}`}
+              title={`${style.key} · ${tr(SEMANTIC_LABELS[c])}`}
+              aria-label={tr("Filter: {label}", { label: tr(SEMANTIC_LABELS[c]) })}
               aria-pressed={colorFilter === c}
               style={{ backgroundColor: style.cssMarker }}
               onClick={() => setColorFilter(colorFilter === c ? "all" : c)}
@@ -126,24 +137,24 @@ export function AnnotationPanel({
         <select
           className="kuraso-input"
           style={{ flex: 1, minWidth: 0, fontSize: 12, paddingBlock: 4 }}
-          aria-label="Group annotations"
+          aria-label={tr("Group annotations")}
           value={groupBy}
           onChange={(e) => setGroupBy(e.target.value as "page" | "color" | "tag")}
         >
-          <option value="page">Group: Page</option>
-          <option value="color">Group: Color</option>
-          <option value="tag">Group: Tag</option>
+          <option value="page">{tr("Group: Page")}</option>
+          <option value="color">{tr("Group: Color")}</option>
+          <option value="tag">{tr("Group: Tag")}</option>
         </select>
 
         {allTags.length > 0 && (
           <select
             className="kuraso-input"
             style={{ flex: 1, minWidth: 0, fontSize: 12, paddingBlock: 4 }}
-            aria-label="Filter by tag"
+            aria-label={tr("Filter by tag")}
             value={tagFilter}
             onChange={(e) => setTagFilter(e.target.value)}
           >
-            <option value="all">All tags</option>
+            <option value="all">{tr("All tags")}</option>
             {allTags.map((t) => (
               <option key={t} value={t}>
                 {t}
@@ -156,14 +167,14 @@ export function AnnotationPanel({
       {grouped.length === 0 ? (
         <p className="kuraso-panel-hint">
           {annotations.length === 0
-            ? "Select text in the paper, then press 1–5 to highlight or N for a margin note."
-            : "No annotations match the active filter."}
+            ? tr("Select text in the paper, then press 1–5 to highlight or N for a margin note.")
+            : tr("No annotations match the active filter.")}
         </p>
       ) : (
         grouped.map(({ group, items }) => (
           <div key={group} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <div className="kuraso-section-label" style={{ marginBlockEnd: 2 }}>
-              {group}
+              {groupLabel(group)}
             </div>
             {items.map((ann) => {
               const style = SEMANTIC_HIGHLIGHT_DEFAULTS[ann.color];
@@ -174,24 +185,26 @@ export function AnnotationPanel({
                 <div key={ann.id} className="kuraso-ann-card">
                   <div className="kuraso-ann-head">
                     <span className="kuraso-ann-label" style={{ backgroundColor: style.cssMarker }}>
-                      {(ann.label ?? SEMANTIC_LABELS[ann.color] ?? ann.color).replace(/-/g, " ")}
+                      {tr(ann.label ?? SEMANTIC_LABELS[ann.color] ?? ann.color).replace(/-/g, " ")}
                     </span>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                       <button
                         type="button"
                         className="kuraso-ann-jump"
-                        title="Jump to this highlight"
+                        title={tr("Jump to this highlight")}
                         onClick={() => onJumpToPage(page)}
                       >
-                        p.{page}
-                        {ann.target.paragraph ? ` · ${ann.target.paragraph}` : ""}
+                        <bdi dir="ltr">
+                          p.{page}
+                          {ann.target.paragraph ? ` · ${ann.target.paragraph}` : ""}
+                        </bdi>
                       </button>
                       <button
                         type="button"
                         className="kuraso-icon-btn"
                         style={{ height: 24, paddingInline: 5 }}
-                        title="Delete annotation"
-                        aria-label="Delete annotation"
+                        title={tr("Delete annotation")}
+                        aria-label={tr("Delete annotation")}
                         onClick={() => onDeleteAnnotation(ann.id)}
                       >
                         <Trash2 size={13} />
@@ -215,12 +228,13 @@ export function AnnotationPanel({
                         className="kuraso-input"
                         dir="auto"
                         rows={3}
-                        placeholder="Margin note (Markdown)…"
+                        placeholder={tr("Margin note (Markdown)…")}
                         value={noteDraft}
                         onChange={(e) => setNoteDraft(e.target.value)}
                       />
                       <input
                         className="kuraso-input"
+                        dir="auto"
                         placeholder="#dataset, #limitation"
                         value={tagsDraft}
                         onChange={(e) => setTagsDraft(e.target.value)}
@@ -231,7 +245,7 @@ export function AnnotationPanel({
                           className="kuraso-icon-btn"
                           onClick={() => setEditingId(null)}
                         >
-                          Cancel
+                          {tr("Cancel")}
                         </button>
                         <button
                           type="button"
@@ -239,7 +253,7 @@ export function AnnotationPanel({
                           style={{ paddingBlock: 5, paddingInline: 14, fontSize: 13, boxShadow: "none" }}
                           onClick={() => commitEdit(ann)}
                         >
-                          Save
+                          {tr("Save")}
                         </button>
                       </div>
                     </div>
@@ -247,19 +261,19 @@ export function AnnotationPanel({
                     <div
                       style={{ display: "flex", flexDirection: "column", gap: 4, cursor: "pointer" }}
                       onClick={() => beginEdit(ann)}
-                      title="Click to edit note or tags"
+                      title={tr("Click to edit note or tags")}
                     >
                       {ann.note ? (
                         <p dir="auto" className="kuraso-ann-sticky">
                           {ann.note}
                         </p>
                       ) : (
-                        <span className="kuraso-ann-add">+ Add a margin note or #tags</span>
+                        <span className="kuraso-ann-add">{tr("+ Add a margin note or #tags")}</span>
                       )}
                       {ann.tags.length > 0 && (
                         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                           {ann.tags.map((t) => (
-                            <span key={t} className="kuraso-chip" data-tag="true">
+                            <span key={t} className="kuraso-chip" data-tag="true" dir="auto">
                               {t}
                             </span>
                           ))}

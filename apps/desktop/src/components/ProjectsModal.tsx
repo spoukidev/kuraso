@@ -3,6 +3,7 @@ import type { Collection, PaperMeta, Project } from "@kuraso/formats";
 import { exportCollectionToBibtex } from "@kuraso/exporters";
 import { Briefcase, Download, Plus, X } from "lucide-react";
 import { createProjectRecord } from "../state/knowledgeStore";
+import { tr } from "../i18n/tr";
 
 interface ProjectsModalProps {
   open: boolean;
@@ -70,7 +71,7 @@ export function ProjectsModal({
       className="kuraso-modal-backdrop"
       role="dialog"
       aria-modal="true"
-      aria-label="Research Projects"
+      aria-label={tr("Research Projects")}
       onClick={onClose}
     >
       <div
@@ -81,7 +82,7 @@ export function ProjectsModal({
         <div className="kuraso-dialog-header">
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             <Briefcase size={16} />
-            <strong>Research Projects (Thesis / Paper Workspaces)</strong>
+            <strong>{tr("Research Projects (Thesis / Paper Workspaces)")}</strong>
           </div>
           <button type="button" className="kuraso-icon-btn" onClick={onClose}>
             <X size={15} />
@@ -93,7 +94,7 @@ export function ProjectsModal({
             <input
               className="kuraso-input"
               style={{ flex: 1 }}
-              placeholder="New project name (e.g. PFE Thesis — 6G Intrusion Detection)…"
+              placeholder={tr("New project name (e.g. PFE Thesis — 6G Intrusion Detection)…")}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => {
@@ -102,7 +103,7 @@ export function ProjectsModal({
             />
             <button type="button" className="kuraso-primary-btn" onClick={handleCreate}>
               <Plus size={14} />
-              <span>Create</span>
+              <span>{tr("Create")}</span>
             </button>
           </div>
 
@@ -126,7 +127,7 @@ export function ProjectsModal({
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: "0.8rem", color: "var(--kuraso-text-secondary)" }}>
-                  Linked collections ({active.collectionIds.length}) · {projectPapers.length} papers
+                  {tr("Linked collections ({n})", { n: active.collectionIds.length })} · {tr("{n} papers", { n: projectPapers.length })}
                 </span>
                 <button
                   type="button"
@@ -139,14 +140,14 @@ export function ProjectsModal({
                     )
                   }
                 >
-                  <Download size={12} /> Export Project BibTeX
+                  <Download size={12} /> {tr("Export Project BibTeX")}
                 </button>
               </div>
 
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {collections.length === 0 ? (
                   <span style={{ fontSize: "0.78rem", color: "var(--kuraso-text-muted)" }}>
-                    Create collections in the sidebar to link them to this project.
+                    {tr("Create collections in the sidebar to link them to this project.")}
                   </span>
                 ) : (
                   collections.map((c) => (
@@ -157,14 +158,14 @@ export function ProjectsModal({
                       data-active={active.collectionIds.includes(c.id) ? "true" : "false"}
                       onClick={() => toggleCollection(c.id)}
                     >
-                      {c.name} ({c.paperIds.length})
+                      <bdi dir="auto">{c.name}</bdi> ({c.paperIds.length})
                     </button>
                   ))
                 )}
               </div>
 
               <label className="kuraso-field">
-                <span>Project Draft (`draft.md` — supports `[[Paper Title]]` wiki-links)</span>
+                <span>{tr("Project Draft (`draft.md` — supports `[[Paper Title]]` wiki-links)")}</span>
                 <textarea
                   className="kuraso-notes-textarea"
                   dir="auto"
@@ -176,15 +177,14 @@ export function ProjectsModal({
             </div>
           ) : (
             <p style={{ margin: 0, fontSize: "0.84rem", color: "var(--kuraso-text-muted)" }}>
-              Create a project to group related collections, draft your related-work chapter with
-              `[[wiki-links]]`, and export its bibliography in one click.
+              {tr("Create a project to group related collections, draft your related-work chapter with `[[wiki-links]]`, and export its bibliography in one click.")}
             </p>
           )}
         </div>
 
         <div className="kuraso-dialog-footer">
           <button type="button" className="kuraso-icon-btn" onClick={onClose}>
-            Close
+            {tr("Close")}
           </button>
         </div>
       </div>

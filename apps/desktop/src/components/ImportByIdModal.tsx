@@ -6,6 +6,7 @@ import {
   type FetchedMetadata,
 } from "@kuraso/importers";
 import { X } from "lucide-react";
+import { tr } from "../i18n/tr";
 
 interface ImportByIdModalProps {
   open: boolean;
@@ -24,7 +25,7 @@ export function ImportByIdModal({ open, onClose, onImported }: ImportByIdModalPr
     setError(null);
     const detected = detectIdentifiers(input);
     if (!detected.doi && !detected.arxivId) {
-      setError("Could not recognize a DOI (e.g. 10.1109/...) or arXiv ID (e.g. 1706.03762).");
+      setError(tr("Could not recognize a DOI (e.g. 10.1109/...) or arXiv ID (e.g. 1706.03762)."));
       return;
     }
 
@@ -40,7 +41,7 @@ export function ImportByIdModal({ open, onClose, onImported }: ImportByIdModalPr
       setError(
         err instanceof Error
           ? err.message
-          : "Metadata lookup failed. Check your connection or add manually.",
+          : tr("Metadata lookup failed. Check your connection or add manually."),
       );
     } finally {
       setLoading(false);
@@ -52,12 +53,12 @@ export function ImportByIdModal({ open, onClose, onImported }: ImportByIdModalPr
       className="kuraso-modal-backdrop"
       role="dialog"
       aria-modal="true"
-      aria-label="Import by DOI or arXiv ID"
+      aria-label={tr("Import by DOI or arXiv ID")}
       onClick={onClose}
     >
       <div className="kuraso-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="kuraso-dialog-header">
-          <strong>Import by DOI or arXiv ID</strong>
+          <strong>{tr("Import by DOI or arXiv ID")}</strong>
           <button type="button" className="kuraso-icon-btn" onClick={onClose}>
             <X size={15} />
           </button>
@@ -82,7 +83,7 @@ export function ImportByIdModal({ open, onClose, onImported }: ImportByIdModalPr
         </div>
         <div className="kuraso-dialog-footer">
           <button type="button" className="kuraso-icon-btn" onClick={onClose}>
-            Cancel
+            {tr("Cancel")}
           </button>
           <button
             type="button"
@@ -90,7 +91,7 @@ export function ImportByIdModal({ open, onClose, onImported }: ImportByIdModalPr
             disabled={loading || !input.trim()}
             onClick={() => void handleLookup()}
           >
-            {loading ? "Looking up…" : "Fetch & Add"}
+            {loading ? tr("Looking up…") : tr("Fetch & Add")}
           </button>
         </div>
       </div>

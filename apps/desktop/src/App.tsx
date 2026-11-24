@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KurasoTheme } from "@kuraso/ui";
 import {
   KURASO_FORMAT_VERSION,
@@ -18,6 +18,9 @@ import {
 } from "@kuraso/exporters";
 import {
   BookOpen,
+  BookOpenText,
+  Maximize2,
+  Minimize2,
   Briefcase,
   Columns2,
   Download,
@@ -35,24 +38,18 @@ import {
   Search,
   Settings,
   Shield,
-  Sparkles,
   Star,
   Sun,
   X,
 } from "lucide-react";
-import { PdfViewer } from "./components/PdfViewer";
 import { CleanReadingView } from "./components/CleanReadingView";
-import { CollectionToolsModal } from "./components/CollectionToolsModal";
 import { CommandPalette, type PaletteCommand } from "./components/CommandPalette";
 import { LibraryView } from "./components/LibraryView";
 import { ImportByIdModal } from "./components/ImportByIdModal";
 import { AnnotationPanel } from "./components/AnnotationPanel";
 import { NotesEditor } from "./components/NotesEditor";
-import { AISettingsModal } from "./components/AISettingsModal";
 import { AssistantPanel } from "./components/AssistantPanel";
 import { OnboardingModal, type OnboardingAIChoice } from "./components/OnboardingModal";
-import { ProjectsModal } from "./components/ProjectsModal";
-import { KnowledgeGraphModal } from "./components/KnowledgeGraphModal";
 import { loadProjects, loadRecipes, saveProjects } from "./state/knowledgeStore";
 import { deleteProviderKey, hasProviderKey, saveProviderKey } from "./state/aiBridge";
 import {
@@ -94,6 +91,20 @@ import {
   saveLibraryPapers,
   sha256Hex,
 } from "./state/libraryStore";
+import { setTrLanguage, tr } from "./i18n/tr";
+
+// Heavy views load on first use: pdf.js only when a paper opens, dialogs only when opened.
+type ReaderView = "pdf" | "split" | "reflow";
+
+const PdfViewer = lazy(() => import("./components/PdfViewer").then((m) => ({ default: m.PdfViewer })));
+const AISettingsModal = lazy(() => import("./components/AISettingsModal").then((m) => ({ default: m.AISettingsModal })));
+const CollectionToolsModal = lazy(() =>
+  import("./components/CollectionToolsModal").then((m) => ({ default: m.CollectionToolsModal })),
+);
+const KnowledgeGraphModal = lazy(() =>
+  import("./components/KnowledgeGraphModal").then((m) => ({ default: m.KnowledgeGraphModal })),
+);
+const ProjectsModal = lazy(() => import("./components/ProjectsModal").then((m) => ({ default: m.ProjectsModal })));
 
 type RightTab = "outline" | "annotations" | "notes" | "assistant";
 type LibraryFilter =
@@ -126,6 +137,7 @@ export function App() {
     }
   });
   const t = TRANSLATIONS[uiLang];
+  setTrLanguage(uiLang);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
   const [rightTab, setRightTab] = useState<RightTab>("outline");
@@ -157,7 +169,9 @@ export function App() {
   // Providers whose key is stored in the OS keychain (desktop app).
   const [keychainProviders, setKeychainProviders] = useState<Record<string, boolean>>({});
   const [pendingExplainText, setPendingExplainText] = useState<string | null>(null);
-  const [cleanReadingMode, setCleanReadingMode] = useState(false);
+  // How the open paper is shown: the PDF, the reflowed text, or both side by side.
+  const [readerView, setReaderView] = useState<ReaderView>("pdf");
+  const [readerFullscreen, setReaderFullscreen] = useState(false);
   const [splitNotesView, setSplitNotesView] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [collectionToolsOpen, setCollectionToolsOpen] = useState(false);
@@ -220,7 +234,7 @@ export function App() {
     (paper: PaperMeta) => {
       const bytes = pdfBytesRef.current[paper.id];
       if (!bytes) {
-        showToast("No local PDF attached yet for this metadata entry — drop or import its PDF.");
+        showToast(tr("No local PDF attached yet for this metadata entry — drop or import its PDF."));
         return;
       }
       const savedPage = loadSavedPositions()[paper.id] ?? paper.readingPosition?.page ?? 1;
@@ -267,7 +281,7 @@ export function App() {
       if (dup) {
         pdfBytesRef.current[dup.paper.id] = bytes;
         setHasBytesMap((m) => ({ ...m, [dup.paper.id]: true }));
-        showToast(`Already in library (${dup.reason}) — opening existing paper.`);
+        showToast(tr("Already in library ({reason}) — opening existing paper.", { reason: tr(dup.reason) }));
         openPaperInReader(dup.paper);
         return;
       }
@@ -315,7 +329,7 @@ export function App() {
       );
       const dup = findDuplicatePaper(papers, syntheticHash, meta.doi);
       if (dup) {
-        showToast(`Paper already in library (${dup.reason}).`);
+        showToast(tr("Paper already in library ({reason}).", { reason: tr(dup.reason) }));
         return;
       }
       const paper = createPaperRecord({
@@ -331,7 +345,7 @@ export function App() {
       });
       setPapers((prev) => [paper, ...prev]);
       setCenterMode("library");
-      showToast(`Added "${paper.title}" to library.`);
+      showToast(tr("Added “{title}” to library.", { title: paper.title }));
     },
     [papers, showToast],
   );
@@ -366,10 +380,13 @@ export function App() {
   const handlePageChange = useCallback(
     (page: number) => {
       if (!activeTabId) return;
-      saveReadingPosition(activeTabId, page);
-      setTabs((prev) =>
-        prev.map((t) => (t.id === activeTabId && t.currentPage !== page ? { ...t, currentPage: page } : t)),
-      );
+      // Pages report visibility often while scrolling; only touch state when the page really changes.
+      setTabs((prev) => {
+        const tab = prev.find((t) => t.id === activeTabId);
+        if (!tab || tab.currentPage === page) return prev;
+        saveReadingPosition(activeTabId, page);
+        return prev.map((t) => (t.id === activeTabId ? { ...t, currentPage: page } : t));
+      });
     },
     [activeTabId],
   );
@@ -482,7 +499,7 @@ export function App() {
       } else {
         setLibrarySearch(targetTitle);
         setCenterMode("library");
-        showToast(`Filtered library for [[${targetTitle}]]`);
+        showToast(tr("Filtered library for [[{title}]]", { title: targetTitle }));
       }
     },
     [papers, openPaperInReader, showToast],
@@ -559,21 +576,22 @@ export function App() {
   }, [papers, collections, libraryFilter, librarySearch]);
 
   const libraryViewTitle = useMemo(() => {
-    if (libraryFilter.kind === "all") return "All Papers";
+    if (libraryFilter.kind === "all") return tr("All Papers");
     if (libraryFilter.kind === "status") {
       return libraryFilter.status === "to-read"
-        ? "Inbox (To Read)"
+        ? tr("Inbox (To Read)")
         : libraryFilter.status === "reading"
-          ? "Currently Reading"
-          : "Important Papers";
+          ? tr("Currently Reading")
+          : tr("Important Papers");
     }
-    return collections.find((c) => c.id === libraryFilter.collectionId)?.name ?? "Collection";
-  }, [libraryFilter, collections]);
+    return collections.find((c) => c.id === libraryFilter.collectionId)?.name ?? tr("Collection");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [libraryFilter, collections, uiLang]);
 
   const handleExportMarkdown = useCallback(() => {
     const activePaper = activeTabId ? papers.find((p) => p.id === activeTabId) : null;
     if (!activePaper) {
-      showToast("Open a paper first to export its Markdown notes.");
+      showToast(tr("Open a paper first to export its Markdown notes."));
       return;
     }
     const md = exportPaperToMarkdown({
@@ -583,7 +601,7 @@ export function App() {
       summary: loadCachedSummary(activePaper.id),
     });
     downloadTextFile(`${activePaper.slug}.md`, md, "text/markdown;charset=utf-8");
-    showToast(`Exported ${activePaper.slug}.md`);
+    showToast(tr("Exported {file}", { file: `${activePaper.slug}.md` }));
   }, [activeTabId, papers, annotationsByPaper, notesByPaper, showToast]);
 
   const handleExportBibtex = useCallback(() => {
@@ -592,17 +610,17 @@ export function App() {
       if (paper) {
         const bib = exportPaperToBibtex(paper);
         downloadTextFile(`${paper.slug}.bib`, bib, "application/x-bibtex;charset=utf-8");
-        showToast(`Exported ${paper.slug}.bib`);
+        showToast(tr("Exported {file}", { file: `${paper.slug}.bib` }));
         return;
       }
     }
     if (visiblePapers.length === 0) {
-      showToast("No papers to export to BibTeX.");
+      showToast(tr("No papers to export to BibTeX."));
       return;
     }
     const bib = exportCollectionToBibtex(visiblePapers);
     downloadTextFile("kuraso-references.bib", bib, "application/x-bibtex;charset=utf-8");
-    showToast(`Exported ${visiblePapers.length} BibTeX entries.`);
+    showToast(tr("Exported {n} BibTeX entries.", { n: visiblePapers.length }));
   }, [centerMode, activeTabId, papers, visiblePapers, showToast]);
 
   const handleOnboardingComplete = useCallback(
@@ -654,7 +672,7 @@ export function App() {
       const raw = await file.text();
       const entries = parseBibtex(raw);
       if (entries.length === 0) {
-        showToast("No valid BibTeX entries found in file.");
+        showToast(tr("No valid BibTeX entries found in file."));
         return;
       }
       let added = 0;
@@ -678,9 +696,87 @@ export function App() {
         added += 1;
       }
       setCenterMode("library");
-      showToast(`Imported ${added} of ${entries.length} BibTeX entries.`);
+      showToast(tr("Imported {added} of {total} BibTeX entries.", { added, total: entries.length }));
     },
     [papers, showToast],
+  );
+
+  const handleExplainSelection = useCallback((text: string) => {
+    setRightOpen(true);
+    setRightTab("assistant");
+    setPendingExplainText(text);
+  }, []);
+
+  // Full-screen reading: hide the app chrome and, when allowed, make the window itself full screen.
+  const toggleReaderFullscreen = useCallback(async (force?: boolean) => {
+    const next = force ?? !readerFullscreenRef.current;
+    readerFullscreenRef.current = next;
+    setReaderFullscreen(next);
+    const tauri = (window as { __TAURI_INTERNALS__?: { invoke: (cmd: string, args?: unknown) => Promise<unknown> } })
+      .__TAURI_INTERNALS__;
+    try {
+      if (tauri) {
+        await tauri.invoke("plugin:window|set_fullscreen", { label: "main", value: next });
+      } else if (next && !document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else if (!next && document.fullscreenElement) {
+        await document.exitFullscreen();
+      }
+    } catch {
+      // Window-level full screen is optional; the chrome-less layout still applies.
+    }
+  }, []);
+  const readerFullscreenRef = useRef(false);
+
+  useEffect(() => {
+    // Leaving browser full screen with Esc should also restore the app chrome.
+    function onChange() {
+      if (!document.fullscreenElement && readerFullscreenRef.current && !("__TAURI_INTERNALS__" in window)) {
+        readerFullscreenRef.current = false;
+        setReaderFullscreen(false);
+      }
+    }
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  useEffect(() => {
+    if (centerMode !== "reader" && readerFullscreenRef.current) void toggleReaderFullscreen(false);
+  }, [centerMode, toggleReaderFullscreen]);
+
+  const readerControls = (
+    <div className="kuraso-view-switch" role="group" aria-label={tr("Reading view")}>
+      {(
+        [
+          ["pdf", FileText, tr("PDF")],
+          ["split", Columns2, tr("PDF + Reflow")],
+          ["reflow", BookOpenText, tr("Reflow")],
+        ] as const
+      ).map(([mode, Icon, label]) => (
+        <button
+          key={mode}
+          type="button"
+          className="kuraso-view-switch-btn"
+          data-active={readerView === mode ? "true" : "false"}
+          aria-pressed={readerView === mode}
+          title={`${label} (Ctrl+R)`}
+          onClick={() => setReaderView(mode)}
+        >
+          <Icon size={14} />
+          <span>{label}</span>
+        </button>
+      ))}
+      <button
+        type="button"
+        className="kuraso-view-switch-btn"
+        data-active={readerFullscreen ? "true" : "false"}
+        title={readerFullscreen ? tr("Exit full screen (Esc)") : tr("Full screen (F11)")}
+        aria-label={readerFullscreen ? tr("Exit full screen (Esc)") : tr("Full screen (F11)")}
+        onClick={() => void toggleReaderFullscreen()}
+      >
+        {readerFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+      </button>
+    </div>
   );
 
   // Global keyboard shortcuts
@@ -701,7 +797,12 @@ export function App() {
         setSearchOpen(true);
       } else if (mod && e.key.toLowerCase() === "r" && centerMode === "reader" && activeTabId) {
         e.preventDefault();
-        setCleanReadingMode((v) => !v);
+        setReaderView((v) => (v === "pdf" ? "split" : v === "split" ? "reflow" : "pdf"));
+      } else if (e.key === "F11" && centerMode === "reader" && activeTabId) {
+        e.preventDefault();
+        void toggleReaderFullscreen();
+      } else if (e.key === "Escape" && readerFullscreen) {
+        void toggleReaderFullscreen(false);
       } else if (e.key === "F11") {
         e.preventDefault();
         setFocusMode((v) => {
@@ -731,24 +832,24 @@ export function App() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [activeTabId, tabs, centerMode]);
+  }, [activeTabId, tabs, centerMode, readerFullscreen, toggleReaderFullscreen]);
 
   const commands: PaletteCommand[] = useMemo(
     () => [
       {
         id: "open-pdf",
-        label: "Import / Open PDF file…",
+        label: tr("Import / Open PDF file…"),
         shortcut: "Ctrl+O",
         run: () => fileInputRef.current?.click(),
       },
       {
         id: "import-doi",
-        label: "Import paper by DOI or arXiv ID…",
+        label: tr("Import paper by DOI or arXiv ID…"),
         run: () => setImportModalOpen(true),
       },
       {
         id: "go-library",
-        label: "Show Library view",
+        label: tr("Show Library view"),
         shortcut: "Ctrl+Shift+F",
         run: () => setCenterMode("library"),
       },
@@ -779,23 +880,23 @@ export function App() {
       },
       {
         id: "ai-settings",
-        label: "Configure AI provider (BYOK / Ollama)…",
+        label: tr("Configure AI provider (BYOK / Ollama)…"),
         run: () => setAiSettingsOpen(true),
       },
       {
         id: "cycle-theme",
-        label: `Switch theme (current: ${theme})`,
+        label: tr("Switch theme (current: {theme})", { theme: tr(theme) }),
         run: cycleTheme,
       },
       {
         id: "toggle-left",
-        label: leftOpen ? "Hide Library panel" : "Show Library panel",
+        label: leftOpen ? tr("Hide Library panel") : tr("Show Library panel"),
         shortcut: "Ctrl+[",
         run: () => setLeftOpen((v) => !v),
       },
       {
         id: "toggle-right",
-        label: rightOpen ? "Hide Context panel" : "Show Context panel",
+        label: rightOpen ? tr("Hide Context panel") : tr("Show Context panel"),
         shortcut: "Ctrl+]",
         run: () => setRightOpen((v) => !v),
       },
@@ -803,7 +904,7 @@ export function App() {
         ? [
             {
               id: "find-in-paper",
-              label: "Find in current paper",
+              label: tr("Find in current paper"),
               shortcut: "Ctrl+F",
               run: () => {
                 setCenterMode("reader");
@@ -812,7 +913,7 @@ export function App() {
             },
             {
               id: "toggle-crop",
-              label: activeTab.marginCrop ? "Disable margin crop" : "Enable smart margin crop",
+              label: activeTab.marginCrop ? tr("Disable margin crop") : tr("Enable smart margin crop"),
               run: () => updateActiveTab((t) => ({ ...t, marginCrop: !t.marginCrop })),
             },
           ]
@@ -836,6 +937,7 @@ export function App() {
   return (
     <div
       className="kuraso-shell"
+      data-reader-fullscreen={readerFullscreen && centerMode === "reader" ? "true" : "false"}
       onDragOver={(e) => {
         e.preventDefault();
         setDragging(true);
@@ -875,7 +977,7 @@ export function App() {
           <button
             type="button"
             className="kuraso-icon-btn"
-            title="Toggle Library (Ctrl+[)"
+            title={tr("Toggle Library (Ctrl+[)")}
             onClick={() => setLeftOpen((v) => !v)}
           >
             <PanelLeft size={16} />
@@ -904,42 +1006,32 @@ export function App() {
               <button
                 type="button"
                 className="kuraso-icon-btn"
-                data-active={cleanReadingMode ? "true" : "false"}
-                title="Toggle Clean Reading Mode (Ctrl+R)"
-                onClick={() => setCleanReadingMode((v) => !v)}
-              >
-                <Sparkles size={14} />
-                <span>Reflow</span>
-              </button>
-              <button
-                type="button"
-                className="kuraso-icon-btn"
                 data-active={splitNotesView ? "true" : "false"}
-                title="Toggle Split View (Paper + Notes)"
+                title={tr("Toggle Split View (Paper + Notes)")}
                 onClick={() => setSplitNotesView((v) => !v)}
               >
                 <Columns2 size={14} />
-                <span>Split</span>
+                <span>{tr("Split")}</span>
               </button>
             </>
           )}
           <button
             type="button"
             className="kuraso-icon-btn"
-            title="Knowledge Graph"
+            title={tr("Knowledge Graph")}
             onClick={() => setGraphOpen(true)}
           >
             <Network size={15} />
-            <span>Graph</span>
+            <span>{tr("Graph")}</span>
           </button>
           <button
             type="button"
             className="kuraso-icon-btn"
-            title="Research Projects (Thesis / Paper Workspaces)"
+            title={tr("Research Projects (Thesis / Paper Workspaces)")}
             onClick={() => setProjectsOpen(true)}
           >
             <Briefcase size={15} />
-            <span>Projects ({projects.length})</span>
+            <span>{tr("Projects ({n})", { n: projects.length })}</span>
           </button>
           <button
             type="button"
@@ -948,7 +1040,7 @@ export function App() {
             onClick={handleExportMarkdown}
           >
             <Download size={15} />
-            <span>.md</span>
+            <bdi dir="ltr">.md</bdi>
           </button>
           <button
             type="button"
@@ -957,12 +1049,12 @@ export function App() {
             onClick={handleExportBibtex}
           >
             <Download size={15} />
-            <span>.bib</span>
+            <bdi dir="ltr">.bib</bdi>
           </button>
           <button
             type="button"
             className="kuraso-icon-btn"
-            title="Import by DOI or arXiv ID"
+            title={tr("Import by DOI or arXiv ID")}
             onClick={() => setImportModalOpen(true)}
           >
             <Plus size={15} />
@@ -971,7 +1063,7 @@ export function App() {
           <button
             type="button"
             className="kuraso-icon-btn"
-            title="Import PDF (Ctrl+O)"
+            title={tr("Import PDF (Ctrl+O)")}
             onClick={() => fileInputRef.current?.click()}
           >
             <FolderOpen size={16} />
@@ -980,7 +1072,7 @@ export function App() {
           <button
             type="button"
             className="kuraso-icon-btn"
-            title="Switch interface language (EN / FR / العربية)"
+            title={tr("Switch interface language (EN / FR / العربية)")}
             onClick={() => setUiLang((l) => (l === "en" ? "fr" : l === "fr" ? "ar" : "en"))}
           >
             <Globe size={15} />
@@ -989,16 +1081,16 @@ export function App() {
           <button
             type="button"
             className="kuraso-icon-btn"
-            title={`Theme: ${theme}`}
+            title={tr("Theme: {theme}", { theme: tr(theme) })}
             onClick={cycleTheme}
           >
             {theme === "dark" ? <Moon size={16} /> : <Sun size={16} />}
-            <span style={{ textTransform: "capitalize" }}>{theme}</span>
+            <span style={{ textTransform: "capitalize" }}>{tr(theme)}</span>
           </button>
           <button
             type="button"
             className="kuraso-icon-btn"
-            title="AI Settings (BYOK / Ollama)"
+            title={tr("AI Settings (BYOK / Ollama)")}
             onClick={() => setAiSettingsOpen(true)}
           >
             <Settings size={16} />
@@ -1006,7 +1098,7 @@ export function App() {
           <button
             type="button"
             className="kuraso-icon-btn"
-            title="Toggle Context panel (Ctrl+])"
+            title={tr("Toggle Context panel (Ctrl+])")}
             onClick={() => setRightOpen((v) => !v)}
           >
             <PanelRight size={16} />
@@ -1017,7 +1109,7 @@ export function App() {
       {/* 3-Pane Workspace */}
       <div className="kuraso-workspace">
         {leftOpen && (
-          <aside className="kuraso-sidebar-left" aria-label="Library">
+          <aside className="kuraso-sidebar-left" aria-label={tr("Library")}>
             <div>
               <div className="kuraso-section-label">{t.library}</div>
               <button
@@ -1106,7 +1198,7 @@ export function App() {
                   type="button"
                   className="kuraso-icon-btn"
                   style={{ height: 22, paddingInline: 4 }}
-                  title="New collection"
+                  title={tr("New collection")}
                   onClick={() => setAddingCollection((v) => !v)}
                 >
                   <Plus size={14} />
@@ -1118,7 +1210,7 @@ export function App() {
                   <input
                     className="kuraso-input"
                     style={{ flex: 1, minWidth: 0, paddingBlock: 4, fontSize: "0.8rem" }}
-                    placeholder="Collection name…"
+                    placeholder={t.newCollectionPlaceholder}
                     value={newCollectionName}
                     onChange={(e) => setNewCollectionName(e.target.value)}
                     onKeyDown={(e) => {
@@ -1132,7 +1224,7 @@ export function App() {
 
               {collections.length === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--kuraso-text-muted)", paddingInline: 10, margin: 0 }}>
-                  Click + to organize papers.
+                  {t.clickPlusCollections}
                 </p>
               ) : (
                 collections.map((col) => (
@@ -1156,7 +1248,7 @@ export function App() {
                       }}
                     >
                       <Folder size={14} />
-                      <span className="kuraso-tab-title">{col.name}</span>
+                      <bdi className="kuraso-tab-title" dir="auto">{col.name}</bdi>
                       <span style={{ marginInlineStart: "auto", fontFamily: "var(--kuraso-font-mono)", fontSize: 11, opacity: 0.75 }}>
                         {col.paperIds.length}
                       </span>
@@ -1168,8 +1260,8 @@ export function App() {
                       data-active={col.localAiOnly ? "true" : "false"}
                       title={
                         col.localAiOnly
-                          ? "Local AI only (confidential)"
-                          : "Click to restrict this collection to Local AI only"
+                          ? tr("Local AI only (confidential)")
+                          : tr("Click to restrict this collection to Local AI only")
                       }
                       onClick={() => handleToggleCollectionLocalOnly(col.id)}
                     >
@@ -1182,7 +1274,7 @@ export function App() {
 
             {tabs.length > 0 && (
               <div>
-                <div className="kuraso-section-label">Open Tabs ({tabs.length})</div>
+                <div className="kuraso-section-label">{t.openTabs} ({tabs.length})</div>
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
@@ -1195,7 +1287,7 @@ export function App() {
                     }}
                   >
                     <FileText size={14} />
-                    <span className="kuraso-tab-title">{tab.title}</span>
+                    <bdi className="kuraso-tab-title" dir="auto">{tab.title}</bdi>
                   </button>
                 ))}
               </div>
@@ -1205,7 +1297,7 @@ export function App() {
               <span className="kuraso-hand" aria-hidden="true">
                 read · mark · keep
               </span>
-              <span>Format v{KURASO_FORMAT_VERSION} · v2.0</span>
+              <span dir="ltr">Format v{KURASO_FORMAT_VERSION} · v2.0</span>
             </div>
           </aside>
         )}
@@ -1222,7 +1314,7 @@ export function App() {
                 onClick={() => setCenterMode("library")}
               >
                 <LibraryIcon size={14} />
-                <span>Library</span>
+                <span>{tr("Library")}</span>
               </div>
               {tabs.map((tab) => (
                 <div
@@ -1237,11 +1329,11 @@ export function App() {
                   }}
                 >
                   <FileText size={14} />
-                  <span className="kuraso-tab-title">{tab.title}</span>
+                  <bdi className="kuraso-tab-title" dir="auto">{tab.title}</bdi>
                   <button
                     type="button"
                     className="kuraso-tab-close"
-                    aria-label={`Close ${tab.title}`}
+                    aria-label={tr("Close {title}", { title: tab.title })}
                     onClick={(e) => {
                       e.stopPropagation();
                       closeTab(tab.id);
@@ -1255,9 +1347,32 @@ export function App() {
           )}
 
           {centerMode === "reader" && activeTab ? (
-            <div className="kuraso-split-reader">
-              <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-                {cleanReadingMode ? (
+            <div className="kuraso-split-reader" data-view={readerView}>
+              {readerView !== "reflow" && (
+                <div className="kuraso-reader-pane">
+                  <Suspense fallback={<div className="kuraso-panel-hint" style={{ padding: 24 }}>{tr("Opening PDF…")}</div>}>
+                    <PdfViewer
+                      doc={activeTab}
+                      annotations={activeAnnotations}
+                      jumpToPage={jumpToPage}
+                      searchOpen={searchOpen}
+                      onCloseSearch={() => setSearchOpen(false)}
+                      onToggleSearch={() => setSearchOpen((v) => !v)}
+                      onZoomChange={(zoom) => updateActiveTab((t) => ({ ...t, zoom }))}
+                      onToggleCrop={() => updateActiveTab((t) => ({ ...t, marginCrop: !t.marginCrop }))}
+                      onPageChange={handlePageChange}
+                      onCreateAnnotation={handleCreateAnnotation}
+                      onUpdateAnnotation={handleUpdateAnnotation}
+                      onExplainSelection={handleExplainSelection}
+                      onDocumentLoaded={handleDocumentLoaded}
+                      toolbarExtra={readerControls}
+                      fitWidthKey={`${activeTab.id}:${readerView}:${readerFullscreen}`}
+                    />
+                  </Suspense>
+                </div>
+              )}
+              {readerView !== "pdf" && (
+                <div className="kuraso-reader-pane" data-pane="reflow">
                   <CleanReadingView
                     title={activeTab.title}
                     structure={activeTab.structure}
@@ -1271,29 +1386,19 @@ export function App() {
                         return next;
                       });
                     }}
-                    onExitCleanMode={() => setCleanReadingMode(false)}
-                  />
-                ) : (
-                  <PdfViewer
-                    doc={activeTab}
-                    annotations={activeAnnotations}
-                    jumpToPage={jumpToPage}
-                    searchOpen={searchOpen}
-                    onCloseSearch={() => setSearchOpen(false)}
-                    onToggleSearch={() => setSearchOpen((v) => !v)}
-                    onZoomChange={(zoom) => updateActiveTab((t) => ({ ...t, zoom }))}
-                    onToggleCrop={() => updateActiveTab((t) => ({ ...t, marginCrop: !t.marginCrop }))}
-                    onPageChange={handlePageChange}
-                    onCreateAnnotation={handleCreateAnnotation}
-                    onExplainSelection={(text) => {
-                      setRightOpen(true);
-                      setRightTab("assistant");
-                      setPendingExplainText(text);
+                    onExitCleanMode={() => setReaderView("pdf")}
+                    compact={readerView === "split"}
+                    currentPage={activeTab.currentPage}
+                    onJumpToPage={(page) => {
+                      if (readerView === "reflow") setReaderView("split");
+                      setJumpToPage(page);
                     }}
-                    onDocumentLoaded={handleDocumentLoaded}
+                    onCreateAnnotation={handleCreateAnnotation}
+                    onExplainSelection={handleExplainSelection}
+                    toolbarExtra={readerView === "reflow" ? readerControls : null}
                   />
-                )}
-              </div>
+                </div>
+              )}
               {splitNotesView && (
                 <div className="kuraso-split-notes">
                   <NotesEditor
@@ -1330,7 +1435,7 @@ export function App() {
 
         {/* Right Context Panel */}
         {rightOpen && (
-          <aside className="kuraso-sidebar-right" aria-label="Context">
+          <aside className="kuraso-sidebar-right" aria-label={tr("Context")}>
             <div className="kuraso-right-tabs">
               <button
                 type="button"
@@ -1391,8 +1496,8 @@ export function App() {
                           setJumpToPage(item.page);
                         }}
                       >
-                        <span>{item.title}</span>
-                        <span className="kuraso-outline-page">
+                        <bdi className="kuraso-outline-title" dir="auto">{item.title}</bdi>
+                        <span className="kuraso-outline-page" dir="ltr">
                           p.{item.page}
                         </span>
                       </button>
@@ -1456,7 +1561,7 @@ export function App() {
                     }}
                     onExportAnki={(tsv) => {
                       downloadTextFile(`${activeTab.title}-anki.tsv`, tsv, "text/tab-separated-values;charset=utf-8");
-                      showToast("Downloaded Anki flashcards (.tsv)");
+                      showToast(tr("Downloaded Anki flashcards (.tsv)"));
                     }}
                   />
                 ) : (
@@ -1481,103 +1586,119 @@ export function App() {
         onImported={(meta) => void handleImportedById(meta)}
       />
 
-      <AISettingsModal
-        open={aiSettingsOpen}
-        settings={aiSettings}
-        hasKey={
-          Boolean(sessionApiKeys[aiSettings.providerId]) || Boolean(keychainProviders[aiSettings.providerId])
-        }
-        sessionApiKey={sessionApiKeys[aiSettings.providerId]}
-        onClose={() => setAiSettingsOpen(false)}
-        onSave={(nextSettings, newApiKey) => {
-          setAiSettings(nextSettings);
-          saveAISettings(nextSettings);
-          void (async () => {
-            if (newApiKey) {
-              try {
-                const inKeychain = await saveProviderKey(nextSettings.providerId, newApiKey);
-                if (inKeychain) {
-                  setKeychainProviders((prev) => ({ ...prev, [nextSettings.providerId]: true }));
-                } else {
-                  setSessionApiKeys((prev) => ({ ...prev, [nextSettings.providerId]: newApiKey }));
-                }
-              } catch (err) {
-                // Keychain unavailable: keep the key for this session so AI still works.
-                setSessionApiKeys((prev) => ({ ...prev, [nextSettings.providerId]: newApiKey }));
-                showToast(err instanceof Error ? err.message : "Key kept for this session only.");
-                return;
-              }
-            } else {
-              const stored = await hasProviderKey(nextSettings.providerId);
-              setKeychainProviders((prev) => ({ ...prev, [nextSettings.providerId]: stored }));
+      {aiSettingsOpen && (
+        <Suspense fallback={null}>
+          <AISettingsModal
+            open={aiSettingsOpen}
+            settings={aiSettings}
+            hasKey={
+              Boolean(sessionApiKeys[aiSettings.providerId]) || Boolean(keychainProviders[aiSettings.providerId])
             }
-            showToast(
-              nextSettings.enabled ? `AI ready: ${nextSettings.label}` : "AI assistant disabled.",
-            );
-          })();
-        }}
-        onRemoveKey={() => {
-          const providerId = aiSettings.providerId;
-          setSessionApiKeys((prev) => {
-            const copy = { ...prev };
-            delete copy[providerId];
-            return copy;
-          });
-          void deleteProviderKey(providerId)
-            .then(() => {
-              setKeychainProviders((prev) => ({ ...prev, [providerId]: false }));
-              showToast("API key removed.");
-            })
-            .catch((err: unknown) =>
-              showToast(err instanceof Error ? err.message : "Could not remove the key."),
-            );
-        }}
-      />
+            sessionApiKey={sessionApiKeys[aiSettings.providerId]}
+            onClose={() => setAiSettingsOpen(false)}
+            onSave={(nextSettings, newApiKey) => {
+              setAiSettings(nextSettings);
+              saveAISettings(nextSettings);
+              void (async () => {
+                if (newApiKey) {
+                  try {
+                    const inKeychain = await saveProviderKey(nextSettings.providerId, newApiKey);
+                    if (inKeychain) {
+                      setKeychainProviders((prev) => ({ ...prev, [nextSettings.providerId]: true }));
+                    } else {
+                      setSessionApiKeys((prev) => ({ ...prev, [nextSettings.providerId]: newApiKey }));
+                    }
+                  } catch (err) {
+                    // Keychain unavailable: keep the key for this session so AI still works.
+                    setSessionApiKeys((prev) => ({ ...prev, [nextSettings.providerId]: newApiKey }));
+                    showToast(err instanceof Error ? err.message : tr("Key kept for this session only."));
+                    return;
+                  }
+                } else {
+                  const stored = await hasProviderKey(nextSettings.providerId);
+                  setKeychainProviders((prev) => ({ ...prev, [nextSettings.providerId]: stored }));
+                }
+                showToast(
+                  nextSettings.enabled ? tr("AI ready: {provider}", { provider: nextSettings.label }) : tr("AI assistant disabled."),
+                );
+              })();
+            }}
+            onRemoveKey={() => {
+              const providerId = aiSettings.providerId;
+              setSessionApiKeys((prev) => {
+                const copy = { ...prev };
+                delete copy[providerId];
+                return copy;
+              });
+              void deleteProviderKey(providerId)
+                .then(() => {
+                  setKeychainProviders((prev) => ({ ...prev, [providerId]: false }));
+                  showToast(tr("API key removed."));
+                })
+                .catch((err: unknown) =>
+                  showToast(err instanceof Error ? err.message : tr("Could not remove the key.")),
+                );
+            }}
+          />
+        </Suspense>
+      )}
 
-      <CollectionToolsModal
-        open={collectionToolsOpen}
-        collectionName={libraryViewTitle}
-        papers={visiblePapers}
-        localAiOnly={
-          libraryFilter.kind === "collection"
-            ? Boolean(collections.find((c) => c.id === libraryFilter.collectionId)?.localAiOnly)
-            : collections.some((c) => c.localAiOnly)
-        }
-        settings={aiSettings}
-        apiKey={sessionApiKeys[aiSettings.providerId] ?? ""}
-        keyReady={aiKeyReady}
-        onClose={() => setCollectionToolsOpen(false)}
-        onOpenSettings={() => {
-          setCollectionToolsOpen(false);
-          setAiSettingsOpen(true);
-        }}
-      />
+      {collectionToolsOpen && (
+        <Suspense fallback={null}>
+          <CollectionToolsModal
+            open={collectionToolsOpen}
+            collectionName={libraryViewTitle}
+            papers={visiblePapers}
+            localAiOnly={
+              libraryFilter.kind === "collection"
+                ? Boolean(collections.find((c) => c.id === libraryFilter.collectionId)?.localAiOnly)
+                : collections.some((c) => c.localAiOnly)
+            }
+            settings={aiSettings}
+            apiKey={sessionApiKeys[aiSettings.providerId] ?? ""}
+            keyReady={aiKeyReady}
+            onClose={() => setCollectionToolsOpen(false)}
+            onOpenSettings={() => {
+              setCollectionToolsOpen(false);
+              setAiSettingsOpen(true);
+            }}
+          />
+        </Suspense>
+      )}
 
-      <KnowledgeGraphModal
-        open={graphOpen}
-        papers={papers}
-        collections={collections}
-        projects={projects}
-        notesByPaper={notesByPaper}
-        onClose={() => setGraphOpen(false)}
-        onOpenPaper={openPaperInReader}
-      />
+      {graphOpen && (
+        <Suspense fallback={null}>
+          <KnowledgeGraphModal
+            open={graphOpen}
+            papers={papers}
+            collections={collections}
+            projects={projects}
+            notesByPaper={notesByPaper}
+            onClose={() => setGraphOpen(false)}
+            onOpenPaper={openPaperInReader}
+          />
+        </Suspense>
+      )}
 
-      <ProjectsModal
-        open={projectsOpen}
-        projects={projects}
-        collections={collections}
-        papers={papers}
-        onClose={() => setProjectsOpen(false)}
-        onSaveProjects={(next) => {
-          setProjects(next);
-          saveProjects(next);
-        }}
-        onExportBibtex={(filename, content) => {
-          downloadTextFile(filename, content, "application/x-bibtex;charset=utf-8");
-          showToast(`Exported ${filename}`);
-        }}
-      />
+      {projectsOpen && (
+        <Suspense fallback={null}>
+          <ProjectsModal
+            open={projectsOpen}
+            projects={projects}
+            collections={collections}
+            papers={papers}
+            onClose={() => setProjectsOpen(false)}
+            onSaveProjects={(next) => {
+              setProjects(next);
+              saveProjects(next);
+            }}
+            onExportBibtex={(filename, content) => {
+              downloadTextFile(filename, content, "application/x-bibtex;charset=utf-8");
+              showToast(tr("Exported {file}", { file: filename }));
+            }}
+          />
+        </Suspense>
+      )}
 
       <OnboardingModal
         open={onboardingOpen}

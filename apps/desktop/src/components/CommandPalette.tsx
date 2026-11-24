@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { tr } from "../i18n/tr";
 
 export interface PaletteCommand {
   id: string;
@@ -43,14 +44,14 @@ export function CommandPalette({ open, commands, onClose }: CommandPaletteProps)
       className="kuraso-modal-backdrop"
       role="dialog"
       aria-modal="true"
-      aria-label="Command palette"
+      aria-label={tr("Command palette")}
       onClick={onClose}
     >
       <div className="kuraso-palette" onClick={(e) => e.stopPropagation()}>
         <input
           ref={inputRef}
           className="kuraso-palette-input"
-          placeholder="Type a command…"
+          placeholder={tr("Type a command…")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
@@ -75,7 +76,7 @@ export function CommandPalette({ open, commands, onClose }: CommandPaletteProps)
         <div className="kuraso-palette-list">
           {filtered.length === 0 && (
             <div style={{ padding: 16, fontSize: "0.85rem", color: "var(--kuraso-text-muted)" }}>
-              No matching commands
+              {tr("No matching commands")}
             </div>
           )}
           {filtered.map((cmd, idx) => (

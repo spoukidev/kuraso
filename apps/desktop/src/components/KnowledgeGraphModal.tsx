@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { Collection, PaperMeta, Project } from "@kuraso/formats";
 import { extractWikiLinks, normalizeLinkKey } from "@kuraso/annotations";
 import { Network, X } from "lucide-react";
+import { tr } from "../i18n/tr";
 
 interface KnowledgeGraphModalProps {
   open: boolean;
@@ -113,7 +114,7 @@ export function KnowledgeGraphModal({
       className="kuraso-modal-backdrop"
       role="dialog"
       aria-modal="true"
-      aria-label="Knowledge Graph"
+      aria-label={tr("Knowledge Graph")}
       onClick={onClose}
     >
       <div className="kuraso-dialog" style={{ width: "min(740px, 95vw)" }} onClick={(e) => e.stopPropagation()}>
@@ -133,8 +134,7 @@ export function KnowledgeGraphModal({
         <div className="kuraso-dialog-body">
           {nodes.length === 0 ? (
             <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--kuraso-text-muted)" }}>
-              Import papers, create collections, or link notes with `[[Paper Title]]` to populate
-              your knowledge graph.
+              {tr("Import papers, create collections, or link notes with `[[Paper Title]]` to populate your knowledge graph.")}
             </p>
           ) : (
             <svg
@@ -203,10 +203,10 @@ export function KnowledgeGraphModal({
 
         <div className="kuraso-dialog-footer">
           <span style={{ marginInlineEnd: "auto", fontSize: "0.75rem", color: "var(--kuraso-text-muted)" }}>
-            Blue: Papers · Green: Collections · Purple: Projects · Dashed: [[wiki-links]]
+            {tr("Blue: Papers · Green: Collections · Purple: Projects · Dashed: [[wiki-links]]")}
           </span>
           <button type="button" className="kuraso-icon-btn" onClick={onClose}>
-            Close
+            {tr("Close")}
           </button>
         </div>
       </div>

@@ -21,6 +21,8 @@ export type PdfRect = [number, number, number, number];
 export interface PdfAnchor {
   page: number;
   rect: PdfRect;
+  /** Source text of this run (paragraph anchors only); used to map Reflow selections to the PDF. */
+  text?: string;
 }
 
 export interface KurasoLibraryMarker {

@@ -25,6 +25,7 @@ import {
   saveCachedSummary,
   type AISettings,
 } from "../state/aiStore";
+import { tr } from "../i18n/tr";
 
 interface AssistantPanelProps {
   paperId: string;
@@ -64,7 +65,7 @@ function GroundedAnswerView({
 }) {
   return (
     <div className="kuraso-ai-answer">
-      <div className="kuraso-ai-badge">AI-generated · cited</div>
+      <div className="kuraso-ai-badge">{tr("AI-generated · cited")}</div>
       {answer.sentences.map((s, idx) => {
         if (s.status === "heading") {
           return (
@@ -83,7 +84,7 @@ function GroundedAnswerView({
                   <button
                     type="button"
                     className="kuraso-cite-chip"
-                    title={`Jump to ${cid} (page ${page})`}
+                    title={tr("Jump to {cid} (page {page})", { cid, page })}
                     onClick={() => onJumpToPage(page)}
                   >
                     {cid}
@@ -94,9 +95,9 @@ function GroundedAnswerView({
             {s.status === "unsupported" && (
               <span
                 className="kuraso-unverified-tag"
-                title="No valid paragraph citation was provided for this sentence"
+                title={tr("No valid paragraph citation was provided for this sentence")}
               >
-                unverified
+                {tr("unverified")}
               </span>
             )}
           </p>
@@ -148,7 +149,7 @@ export function AssistantPanel({
         ? [
             {
               id: "cached-summary",
-              label: "Cached Structured Summary",
+              label: tr("Cached Structured Summary"),
               answer: cached,
               model: settings.model,
               estimatedTokens: 0,
@@ -167,21 +168,21 @@ export function AssistantPanel({
       return;
     }
     if (blockedByLocalPolicy) {
-      setError("This paper belongs to a 'Local AI only' collection. Switch to Ollama in Settings.");
+      setError(tr("This paper belongs to a 'Local AI only' collection. Switch to Ollama in Settings."));
       return;
     }
     if (!settings.local && !keyReady) {
-      setError(`Add your ${settings.label} API key first — it's free and takes a minute.`);
+      setError(tr("Add your {provider} API key first — it's free and takes a minute.", { provider: settings.label }));
       onOpenSettings();
       return;
     }
     if (scanned || paragraphs.length === 0) {
-      setError("No selectable text extracted for this paper yet.");
+      setError(tr("No selectable text extracted for this paper yet."));
       return;
     }
     if (!settings.local && settings.askBeforeCloudSend && !cloudConfirmed) {
       setError(
-        `Confirm below before sending "${paperTitle}" text to ${settings.label}.`,
+        tr("Confirm below before sending “{title}” text to {provider}.", { title: paperTitle, provider: settings.label }),
       );
       return;
     }
@@ -217,12 +218,12 @@ export function AssistantPanel({
 
       const label =
         task === "tldr"
-          ? "TL;DR"
+          ? tr("TL;DR")
           : task === "structured-summary"
-            ? "Structured Summary"
+            ? tr("Structured Summary")
             : task === "explain-selection"
-              ? `Explain: “${(extra?.selection ?? "").slice(0, 48)}…”`
-              : extra?.question ?? "Question";
+              ? tr("Explain: “{text}…”", { text: (extra?.selection ?? "").slice(0, 48) })
+              : extra?.question ?? tr("Question");
 
       setTurns((prev) => [
         {
@@ -235,7 +236,7 @@ export function AssistantPanel({
         ...prev,
       ]);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "AI request failed.");
+      setError(err instanceof Error ? err.message : tr("AI request failed."));
     } finally {
       setRunning(false);
       abortRef.current = null;
@@ -249,16 +250,16 @@ export function AssistantPanel({
       return;
     }
     if (blockedByLocalPolicy) {
-      setError("This paper belongs to a 'Local AI only' collection. Switch to Ollama in Settings.");
+      setError(tr("This paper belongs to a 'Local AI only' collection. Switch to Ollama in Settings."));
       return;
     }
     if (!settings.local && !keyReady) {
-      setError(`Add your ${settings.label} API key first — it's free and takes a minute.`);
+      setError(tr("Add your {provider} API key first — it's free and takes a minute.", { provider: settings.label }));
       onOpenSettings();
       return;
     }
     if (mode === "summarize-highlights" && annotations.length === 0) {
-      setError("Create at least one highlight in this paper first.");
+      setError(tr("Create at least one highlight in this paper first."));
       return;
     }
 
@@ -295,7 +296,7 @@ export function AssistantPanel({
       setTurns((prev) => [
         {
           id: `${Date.now()}`,
-          label: mode === "flashcards" ? "Study Flashcards (Anki)" : "Summary of My Highlights",
+          label: mode === "flashcards" ? tr("Study Flashcards (Anki)") : tr("Summary of My Highlights"),
           answer: verified,
           model: settings.model,
           estimatedTokens: built.estimatedInputTokens,
@@ -303,7 +304,7 @@ export function AssistantPanel({
         ...prev,
       ]);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Study tool failed.");
+      setError(err instanceof Error ? err.message : tr("Study tool failed."));
     } finally {
       setRunning(false);
     }
@@ -316,16 +317,16 @@ export function AssistantPanel({
       return;
     }
     if (blockedByLocalPolicy) {
-      setError("This paper belongs to a 'Local AI only' collection. Switch to Ollama in Settings.");
+      setError(tr("This paper belongs to a 'Local AI only' collection. Switch to Ollama in Settings."));
       return;
     }
     if (!settings.local && !keyReady) {
-      setError(`Add your ${settings.label} API key first — it's free and takes a minute.`);
+      setError(tr("Add your {provider} API key first — it's free and takes a minute.", { provider: settings.label }));
       onOpenSettings();
       return;
     }
     if (scanned || paragraphs.length === 0) {
-      setError("No selectable text extracted for this paper yet.");
+      setError(tr("No selectable text extracted for this paper yet."));
       return;
     }
     const built = buildRecipePrompt(recipe, {
@@ -354,7 +355,7 @@ export function AssistantPanel({
         ...prev,
       ]);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Recipe run failed.");
+      setError(err instanceof Error ? err.message : tr("Recipe run failed."));
     } finally {
       setRunning(false);
     }
@@ -373,9 +374,9 @@ export function AssistantPanel({
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: "0.82rem", fontWeight: 500 }}>
           <Sparkles size={14} />
-          <span>{settings.enabled ? settings.model || settings.label : "AI Off"}</span>
+          <span dir="ltr">{settings.enabled ? settings.model || settings.label : tr("AI Off")}</span>
         </div>
-        <button type="button" className="kuraso-icon-btn" title="AI Settings" onClick={onOpenSettings}>
+        <button type="button" className="kuraso-icon-btn" title={tr("AI Settings")} onClick={onOpenSettings}>
           <Settings size={14} />
         </button>
       </div>
@@ -383,14 +384,14 @@ export function AssistantPanel({
       {blockedByLocalPolicy && (
         <div className="kuraso-info-box" style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <Shield size={14} />
-          <span>Local AI only collection — cloud providers are blocked.</span>
+          <span>{tr("Local AI only collection — cloud providers are blocked.")}</span>
         </div>
       )}
 
       {settings.enabled && !settings.local && settings.askBeforeCloudSend && !cloudConfirmed && (
         <div className="kuraso-info-box">
           <div>
-            Paragraphs from this paper will be sent to <strong>{settings.label}</strong>.
+            {tr("Paragraphs from this paper will be sent to")} <strong>{settings.label}</strong>.
           </div>
           <button
             type="button"
@@ -402,7 +403,7 @@ export function AssistantPanel({
               setError(null);
             }}
           >
-            Allow for this paper
+            {tr("Allow for this paper")}
           </button>
         </div>
       )}
@@ -415,7 +416,7 @@ export function AssistantPanel({
           disabled={running}
           onClick={() => void runTask("tldr")}
         >
-          TL;DR
+          {tr("TL;DR")}
         </button>
         <button
           type="button"
@@ -423,7 +424,7 @@ export function AssistantPanel({
           disabled={running}
           onClick={() => void runTask("structured-summary")}
         >
-          Structured Summary
+          {tr("Structured Summary")}
         </button>
         <button
           type="button"
@@ -431,7 +432,7 @@ export function AssistantPanel({
           disabled={running}
           onClick={() => void runStudyTool("summarize-highlights")}
         >
-          Summarize Highlights
+          {tr("Summarize Highlights")}
         </button>
         <button
           type="button"
@@ -439,13 +440,13 @@ export function AssistantPanel({
           disabled={running}
           onClick={() => void runStudyTool("flashcards")}
         >
-          Anki Flashcards
+          {tr("Anki Flashcards")}
         </button>
         {recipes.length > 0 && (
           <select
             className="kuraso-input"
             style={{ fontSize: "0.74rem", paddingBlock: 2 }}
-            aria-label="Run AI recipe"
+            aria-label={tr("Run AI recipe")}
             defaultValue=""
             disabled={running}
             onChange={(e) => {
@@ -455,11 +456,11 @@ export function AssistantPanel({
             }}
           >
             <option value="" disabled>
-              Run Recipe…
+              {tr("Run Recipe…")}
             </option>
             {recipes.map((r) => (
               <option key={r.id} value={r.id}>
-                {r.name}
+                {r.builtIn ? tr(r.name) : r.name}
               </option>
             ))}
           </select>
@@ -471,7 +472,7 @@ export function AssistantPanel({
             style={{ borderColor: "var(--kuraso-hl-red-border)", color: "var(--kuraso-hl-red-border)" }}
             onClick={() => abortRef.current?.abort()}
           >
-            <Square size={10} /> Stop
+            <Square size={10} /> {tr("Stop")}
           </button>
         )}
       </div>
@@ -491,7 +492,7 @@ export function AssistantPanel({
           className="kuraso-input"
           dir="auto"
           style={{ flex: 1, minWidth: 0, fontSize: "0.8rem" }}
-          placeholder="Ask about this paper…"
+          placeholder={tr("Ask about this paper…")}
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
         />
@@ -500,7 +501,7 @@ export function AssistantPanel({
           className="kuraso-primary-btn"
           style={{ paddingInline: 10, paddingBlock: 6 }}
           disabled={running || !question.trim()}
-          title="Ask"
+          title={tr("Ask")}
         >
           <Send size={13} />
         </button>
@@ -526,19 +527,19 @@ export function AssistantPanel({
         {turns.length === 0 && !running && (
           <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--kuraso-text-muted)", lineHeight: 1.5 }}>
             {settings.enabled
-              ? "Click TL;DR, Structured Summary, select any passage and press Ctrl+E, or ask a question. Every sentence cites a verified [P#] paragraph."
-              : "Connect a free-tier API key (no credit card needed) or local Ollama in Settings to summarize and ask grounded questions."}
+              ? tr("Click TL;DR, Structured Summary, select any passage and press Ctrl+E, or ask a question. Every sentence cites a verified [P#] paragraph.")
+              : tr("Connect a free-tier API key (no credit card needed) or local Ollama in Settings to summarize and ask grounded questions.")}
           </p>
         )}
         {running && (
           <div style={{ fontSize: "0.8rem", color: "var(--kuraso-text-muted)" }}>
-            Generating grounded answer…
+            {tr("Generating grounded answer…")}
           </div>
         )}
         {turns.map((turn) => (
           <div key={turn.id} className="kuraso-ann-card">
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.74rem", color: "var(--kuraso-text-muted)" }}>
-              <strong>{turn.label}</strong>
+              <strong dir="auto">{turn.label}</strong>
               {turn.estimatedTokens > 0 && <span>~{turn.estimatedTokens} tok</span>}
             </div>
             <GroundedAnswerView

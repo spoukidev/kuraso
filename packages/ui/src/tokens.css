@@ -110,15 +110,15 @@
   --kuraso-hand: #c7381f;
 
   /* Semantic highlights: marker washes + darker edges (3:1+) */
-  --kuraso-hl-yellow-bg: rgba(255, 225, 74, 0.6);
+  --kuraso-hl-yellow-bg: rgba(255, 225, 74, 0.38);
   --kuraso-hl-yellow-border: #8a6a00;
-  --kuraso-hl-green-bg: rgba(127, 227, 181, 0.6);
+  --kuraso-hl-green-bg: rgba(127, 227, 181, 0.34);
   --kuraso-hl-green-border: #17825a;
-  --kuraso-hl-blue-bg: rgba(140, 203, 255, 0.6);
+  --kuraso-hl-blue-bg: rgba(140, 203, 255, 0.34);
   --kuraso-hl-blue-border: #1a6fb8;
-  --kuraso-hl-red-bg: rgba(255, 138, 107, 0.5);
+  --kuraso-hl-red-bg: rgba(255, 138, 107, 0.3);
   --kuraso-hl-red-border: #c7381f;
-  --kuraso-hl-purple-bg: rgba(201, 184, 255, 0.65);
+  --kuraso-hl-purple-bg: rgba(201, 184, 255, 0.4);
   --kuraso-hl-purple-border: #6a4fd1;
 
   --kuraso-scrim: rgba(21, 27, 51, 0.4);
@@ -185,15 +185,15 @@
   --kuraso-accent-soft: #252d55;
   --kuraso-on-accent: #0f1328;
   --kuraso-hand: #ff8a6b;
-  --kuraso-hl-yellow-bg: rgba(255, 225, 74, 0.3);
+  --kuraso-hl-yellow-bg: rgba(255, 225, 74, 0.22);
   --kuraso-hl-yellow-border: #ffe14a;
-  --kuraso-hl-green-bg: rgba(127, 227, 181, 0.28);
+  --kuraso-hl-green-bg: rgba(127, 227, 181, 0.2);
   --kuraso-hl-green-border: #7fe3b5;
-  --kuraso-hl-blue-bg: rgba(140, 203, 255, 0.28);
+  --kuraso-hl-blue-bg: rgba(140, 203, 255, 0.2);
   --kuraso-hl-blue-border: #8ccbff;
-  --kuraso-hl-red-bg: rgba(255, 138, 107, 0.28);
+  --kuraso-hl-red-bg: rgba(255, 138, 107, 0.2);
   --kuraso-hl-red-border: #ff8a6b;
-  --kuraso-hl-purple-bg: rgba(201, 184, 255, 0.28);
+  --kuraso-hl-purple-bg: rgba(201, 184, 255, 0.2);
   --kuraso-hl-purple-border: #c9b8ff;
   --kuraso-scrim: rgba(0, 0, 0, 0.6);
   --kuraso-shadow-sticker: 4px 4px 0 #000000;

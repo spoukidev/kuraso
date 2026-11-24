@@ -520,7 +520,8 @@ textarea.kuraso-input {
   padding-inline: var(--kuraso-space-4);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  /* "safe": a page wider than the pane stays scrollable instead of being cut off on the left. */
+  align-items: safe center;
   gap: var(--kuraso-space-4);
 }
 
@@ -660,7 +661,7 @@ textarea.kuraso-input {
 }
 
 .kuraso-right-tab {
-  flex: 1 0 auto;
+  flex: 1 1 auto;
   min-width: 0;
   padding-block: 7px;
   padding-inline: 10px;
@@ -1060,21 +1061,24 @@ textarea.kuraso-input {
 }
 
 /* ───────── Highlights, text layer, selection toolbar ───────── */
+/* The blend sits on the layer, not on each box: the layer is its own stacking context
+   (z-index), so a per-box blend only mixed with the empty layer and washed the text out.
+   Blending the whole layer with the page canvas keeps ink fully dark under the marker. */
 .kuraso-annotation-layer {
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 2;
+  mix-blend-mode: multiply;
+}
+
+[data-theme="dark"] .kuraso-annotation-layer {
+  mix-blend-mode: screen;
 }
 
 .kuraso-highlight-box {
   position: absolute;
   border-radius: 2px 4px 3px 5px;
-  mix-blend-mode: multiply;
-}
-
-[data-theme="dark"] .kuraso-highlight-box {
-  mix-blend-mode: screen;
 }
 
 .kuraso-text-layer {
@@ -1089,6 +1093,7 @@ textarea.kuraso-input {
 .kuraso-text-layer span {
   position: absolute;
   white-space: pre;
+  transform-origin: 0 0;
   color: transparent;
   cursor: text;
 }
@@ -1564,4 +1569,184 @@ textarea.kuraso-input {
 /* ───────── Scrollbars ───────── */
 * {
   scrollbar-color: var(--kuraso-border) transparent;
+}
+
+/* ── Right-to-left (Arabic) ─────────────────────────────────────────────────
+   Layout already uses logical properties; these rules cover what logical
+   properties can't: Arabic letters must never be tracked (it breaks joining),
+   uppercase has no meaning in Arabic, directional icons mirror, and Latin-only
+   display fonts get an Arabic fallback. */
+html[dir="rtl"] {
+  --kuraso-font-hand: "Caveat", "IBM Plex Sans Arabic", cursive;
+}
+
+html[dir="rtl"] body *:not(.kuraso-brand *):not([dir="ltr"]):not([dir="ltr"] *) {
+  letter-spacing: normal;
+}
+
+html[dir="rtl"] .kuraso-section-label,
+html[dir="rtl"] .kuraso-ann-label,
+html[dir="rtl"] .kuraso-ai-badge,
+html[dir="rtl"] .kuraso-table th {
+  text-transform: none;
+  font-size: 0.8rem;
+}
+
+/* Arabic glyphs sit smaller than Latin at the same size — lift small UI text a notch. */
+html[dir="rtl"] .kuraso-right-tab,
+html[dir="rtl"] .kuraso-nav-item,
+html[dir="rtl"] .kuraso-chip,
+html[dir="rtl"] .kuraso-icon-btn {
+  font-size: 0.85rem;
+}
+html[dir="rtl"] .kuraso-panel-hint,
+html[dir="rtl"] .kuraso-ann-add,
+html[dir="rtl"] .kuraso-field > span {
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+
+/* Mirror icons that point along the reading direction. */
+html[dir="rtl"] :is(.lucide-chevron-right, .lucide-chevron-left, .lucide-arrow-right, .lucide-arrow-left,
+  .lucide-send, .lucide-send-horizontal, .lucide-corner-down-left, .lucide-log-out, .lucide-external-link,
+  .lucide-panel-left, .lucide-panel-right, .lucide-panel-left-close, .lucide-panel-right-close) {
+  transform: scaleX(-1);
+}
+
+/* The handwritten count uses Caveat; Arabic numerals/words read better in the UI face. */
+html[dir="rtl"] .kuraso-library-count,
+html[dir="rtl"] .kuraso-empty-hand {
+  font-family: var(--kuraso-font-arabic);
+  font-weight: 600;
+}
+
+/* User/paper text picks its own direction inside the RTL shell. */
+.kuraso-outline-title,
+.kuraso-tab-title {
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+.kuraso-paper-title-btn {
+  text-align: start;
+}
+
+.kuraso-search-trigger > span:not(.kuraso-kbd) {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ── Reading views: PDF · PDF + Reflow · Reflow ─────────────────────────── */
+.kuraso-reader-pane {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.kuraso-split-reader[data-view="split"] .kuraso-reader-pane[data-pane="reflow"] {
+  flex: 0 1 44%;
+  border-inline-start: 2px solid var(--kuraso-border-strong);
+}
+
+.kuraso-reflow {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.kuraso-reflow[data-compact="true"] .kuraso-clean-reader {
+  padding-inline: var(--kuraso-space-6);
+  padding-block: 24px;
+}
+
+.kuraso-clean-reader {
+  user-select: text;
+}
+
+.kuraso-clean-paragraph mark {
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  padding-block: 0.06em;
+}
+
+button.kuraso-clean-pid {
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+button.kuraso-clean-pid:hover {
+  color: var(--kuraso-accent);
+  text-decoration: underline;
+}
+
+.kuraso-view-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  margin-inline-start: 4px;
+  border: 1.5px solid var(--kuraso-border-strong);
+  border-radius: var(--kuraso-radius-pill);
+  background: var(--kuraso-bg-canvas);
+}
+
+.kuraso-view-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding-inline: 9px;
+  border: 0;
+  border-radius: var(--kuraso-radius-pill);
+  background: transparent;
+  color: var(--kuraso-text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.kuraso-view-switch-btn:hover {
+  color: var(--kuraso-text-primary);
+  background: var(--kuraso-bg-elevated);
+}
+.kuraso-view-switch-btn[data-active="true"] {
+  background: var(--kuraso-text-primary);
+  color: var(--kuraso-bg-canvas);
+}
+/* Narrow panes: keep the icons, drop the words. */
+.kuraso-split-reader[data-view="split"] .kuraso-view-switch-btn span {
+  display: none;
+}
+
+/* ── Full-screen reading ────────────────────────────────────────────────── */
+.kuraso-shell[data-reader-fullscreen="true"] :is(.kuraso-topbar, .kuraso-sidebar-left, .kuraso-sidebar-right, .kuraso-tabbar) {
+  display: none !important;
+}
+.kuraso-shell[data-reader-fullscreen="true"] .kuraso-reader-toolbar {
+  opacity: 0.35;
+  transition: opacity var(--kuraso-duration-fast) ease;
+}
+.kuraso-shell[data-reader-fullscreen="true"] .kuraso-reader-toolbar:hover,
+.kuraso-shell[data-reader-fullscreen="true"] .kuraso-reader-toolbar:focus-within {
+  opacity: 1;
+}
+
+/* Toolbars in a half-width pane: keep one line, drop the secondary bits. */
+.kuraso-reader-toolbar-group {
+  min-width: 0;
+  white-space: nowrap;
+}
+.kuraso-split-reader[data-view="split"] .kuraso-reader-toolbar {
+  padding-inline: var(--kuraso-space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.kuraso-split-reader[data-view="split"] .kuraso-reader-toolbar :is(.kuraso-toolbar-meta, .kuraso-icon-btn > span) {
+  display: none;
 }

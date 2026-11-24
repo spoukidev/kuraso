@@ -123,7 +123,7 @@ export const TRANSLATIONS = {
     outline: "الفهرس",
     highlights: "التظليلات",
     notes: "الملاحظات",
-    ai: "الذكاء الاصطناعي",
+    ai: "المساعد",
     exportMd: "تصدير Markdown",
     exportBib: "تصدير BibTeX",
     openPdfOutlineHint: "افتح ملف PDF لتصفح فهرس العناوين.",

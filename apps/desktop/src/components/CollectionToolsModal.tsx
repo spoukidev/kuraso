@@ -4,6 +4,7 @@ import { buildCollectionPrompt } from "@kuraso/ai";
 import { AlertTriangle, Sparkles, Table2, X } from "lucide-react";
 import type { AISettings } from "../state/aiStore";
 import { runChat } from "../state/aiBridge";
+import { tr } from "../i18n/tr";
 
 interface CollectionToolsModalProps {
   open: boolean;
@@ -45,16 +46,16 @@ export function CollectionToolsModal({
       return;
     }
     if (blocked) {
-      setError("This collection is marked 'Local AI only'. Switch to Ollama in Settings.");
+      setError(tr("This collection is marked 'Local AI only'. Switch to Ollama in Settings."));
       return;
     }
     if (!settings.local && !keyReady) {
-      setError(`Add your ${settings.label} API key first — it's free and takes a minute.`);
+      setError(tr("Add your {provider} API key first — it's free and takes a minute.", { provider: settings.label }));
       onOpenSettings();
       return;
     }
     if (papers.length === 0) {
-      setError("Add papers to this view first.");
+      setError(tr("Add papers to this view first."));
       return;
     }
 
@@ -78,7 +79,7 @@ export function CollectionToolsModal({
       });
       setOutput(text);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Collection AI request failed.");
+      setError(err instanceof Error ? err.message : tr("Collection AI request failed."));
     } finally {
       setRunning(false);
     }
@@ -89,7 +90,7 @@ export function CollectionToolsModal({
       className="kuraso-modal-backdrop"
       role="dialog"
       aria-modal="true"
-      aria-label="Multi-Paper AI Tools"
+      aria-label={tr("Multi-Paper AI Tools")}
       onClick={onClose}
     >
       <div className="kuraso-dialog" style={{ width: "min(680px, 94vw)" }} onClick={(e) => e.stopPropagation()}>
@@ -114,7 +115,7 @@ export function CollectionToolsModal({
               onClick={() => void run("comparison-table")}
             >
               <Table2 size={14} />
-              <span>Generate Comparison Table</span>
+              <span>{tr("Generate Comparison Table")}</span>
             </button>
             {estTokens > 0 && (
               <span style={{ fontSize: "0.76rem", color: "var(--kuraso-text-muted)" }}>
@@ -128,7 +129,7 @@ export function CollectionToolsModal({
               className="kuraso-input"
               dir="auto"
               style={{ flex: 1 }}
-              placeholder="Ask across all papers in this view (e.g. How do they evaluate robustness?)…"
+              placeholder={tr("Ask across all papers in this view (e.g. How do they evaluate robustness?)…")}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={(e) => {
@@ -142,7 +143,7 @@ export function CollectionToolsModal({
               onClick={() => void run("collection-chat")}
             >
               <Sparkles size={14} />
-              <span>Ask</span>
+              <span>{tr("Ask")}</span>
             </button>
           </div>
 
@@ -161,7 +162,7 @@ export function CollectionToolsModal({
 
           {output && (
             <div className="kuraso-ann-card">
-              <div className="kuraso-ai-badge">AI-generated · Multi-Paper Grounded</div>
+              <div className="kuraso-ai-badge">{tr("AI-generated · Multi-Paper Grounded")}</div>
               <pre
                 dir="auto"
                 style={{
@@ -180,7 +181,7 @@ export function CollectionToolsModal({
 
         <div className="kuraso-dialog-footer">
           <button type="button" className="kuraso-icon-btn" onClick={onClose}>
-            Close
+            {tr("Close")}
           </button>
         </div>
       </div>

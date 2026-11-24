@@ -137,7 +137,8 @@ export function segmentPagesToStructure(pages) {
 
       bufferLines.push(text);
       if (line.rect) {
-        bufferAnchors.push({ page: pageNum, rect: line.rect });
+        // `text` lets Reflow map a character range back onto exact PDF rectangles.
+        bufferAnchors.push({ page: pageNum, rect: line.rect, text });
       } else if (bufferAnchors.length === 0) {
         bufferAnchors.push({ page: pageNum, rect: [0, 0, 100, 12] });
       }
