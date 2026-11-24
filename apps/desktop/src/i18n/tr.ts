@@ -401,6 +401,16 @@ const CATALOG: Record<string, Entry> = {
     "Créez un projet pour regrouper des collections, rédiger votre état de l’art avec des `[[liens wiki]]` et exporter sa bibliographie en un clic.",
     "أنشئ مشروعاً لتجميع المجموعات ذات الصلة، وكتابة فصل الدراسات السابقة بروابط `[[wiki]]`، وتصدير مراجعه بنقرة واحدة.",
   ],
+
+  // ── Auto-updater ────────────────────────────────────────────────────
+  "Kuraso {version} is available.": [
+    "Kuraso {version} est disponible.",
+    "الإصدار {version} من Kuraso متاح الآن.",
+  ],
+  "Update & Restart": ["Mettre à jour et redémarrer", "تحديث وإعادة التشغيل"],
+  "Downloading update…": ["Téléchargement de la mise à jour…", "جارٍ تنزيل التحديث…"],
+  Later: ["Plus tard", "لاحقاً"],
+  "Update failed: {message}": ["Échec de la mise à jour : {message}", "فشل التحديث: {message}"],
 };
 
 let current: UILanguage = "en";

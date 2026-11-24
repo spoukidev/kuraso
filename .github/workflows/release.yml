@@ -57,6 +57,8 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.UPDATER }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
           tagName: ${{ github.ref_name }}
@@ -64,4 +66,5 @@ jobs:
           releaseBody: "Open-source, local-first desktop reading workspace for students and researchers (Windows, macOS, Linux). Download the installer for your OS below. On Windows SmartScreen, click More info -> Run anyway. On macOS, right-click Kuraso.app -> Open."
           releaseDraft: false
           prerelease: false
+          includeUpdaterJson: true
           args: ${{ matrix.args }}

@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Default Kuraso desktop window capabilities",
   "windows": ["main"],
-  "permissions": ["core:default", "core:window:allow-set-fullscreen"]
+  "permissions": ["core:default", "core:window:allow-set-fullscreen", "updater:default"]
 }

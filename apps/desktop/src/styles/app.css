@@ -1750,3 +1750,20 @@ button.kuraso-clean-pid:hover {
 .kuraso-split-reader[data-view="split"] .kuraso-reader-toolbar :is(.kuraso-toolbar-meta, .kuraso-icon-btn > span) {
   display: none;
 }
+
+.kuraso-update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--kuraso-space-3);
+  padding-block: 6px;
+  padding-inline: var(--kuraso-space-4);
+  background-color: var(--kuraso-accent-soft);
+  border-bottom: 1px solid var(--kuraso-border);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--kuraso-text-primary);
+}
+.kuraso-shell[data-reader-fullscreen="true"] .kuraso-update-banner {
+  display: none;
+}

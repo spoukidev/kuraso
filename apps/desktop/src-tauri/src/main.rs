@@ -6,6 +6,7 @@ use kuraso_library::{CollectionsFile, Library, PaperMeta, SyncConflict};
 use serde::Serialize;
 use std::fs;
 use std::path::PathBuf;
+use tauri_plugin_updater::UpdaterExt;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -192,8 +193,43 @@ async fn ai_run_chat(
         .map_err(|e| e.to_string())
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateInfo {
+    version: String,
+    current_version: String,
+    body: Option<String>,
+}
+
+#[tauri::command]
+async fn check_for_update(app: tauri::AppHandle) -> Result<Option<UpdateInfo>, String> {
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    match updater.check().await.map_err(|e| e.to_string())? {
+        Some(update) => Ok(Some(UpdateInfo {
+            version: update.version,
+            current_version: update.current_version,
+            body: update.body,
+        })),
+        None => Ok(None),
+    }
+}
+
+#[tauri::command]
+async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    if let Some(update) = updater.check().await.map_err(|e| e.to_string())? {
+        update
+            .download_and_install(|_chunk_len, _content_len| {}, || {})
+            .await
+            .map_err(|e| e.to_string())?;
+        app.restart();
+    }
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             get_runtime_info,
             read_pdf_bytes,
@@ -215,7 +251,9 @@ fn main() {
             ai_save_key,
             ai_has_key,
             ai_delete_key,
-            ai_run_chat
+            ai_run_chat,
+            check_for_update,
+            install_update
         ])
         .run(tauri::generate_context!())
         .expect("error while running Kuraso desktop application");

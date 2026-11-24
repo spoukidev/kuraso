@@ -152,6 +152,8 @@ export function App() {
   const [newCollectionName, setNewCollectionName] = useState("");
   const [addingCollection, setAddingCollection] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [availableUpdate, setAvailableUpdate] = useState<{ version: string; body?: string | null } | null>(null);
+  const [installingUpdate, setInstallingUpdate] = useState(false);
 
   // In-memory PDF bytes keyed by paper.id (in desktop Tauri, bytes live in <Library>/papers/<slug>/paper.pdf)
   const pdfBytesRef = useRef<Record<string, Uint8Array>>({});
@@ -190,6 +192,51 @@ export function App() {
     setToast(msg);
     setTimeout(() => setToast((cur) => (cur === msg ? null : cur)), 3200);
   }, []);
+
+  // Silent background check for desktop app updates (no-op in browser or offline)
+  useEffect(() => {
+    const tauri = (
+      window as { __TAURI_INTERNALS__?: { invoke?: (cmd: string, args?: unknown) => Promise<unknown> } }
+    ).__TAURI_INTERNALS__;
+    if (!tauri?.invoke) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void tauri
+        .invoke!("check_for_update")
+        .then((res) => {
+          if (cancelled || !res || typeof res !== "object") return;
+          const info = res as { version?: string; body?: string | null };
+          if (info.version) {
+            setAvailableUpdate({ version: info.version, body: info.body });
+          }
+        })
+        .catch(() => {
+          // Offline or updater unavailable — stay silent.
+        });
+    }, 3000);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  const handleInstallUpdate = useCallback(async () => {
+    const tauri = (
+      window as { __TAURI_INTERNALS__?: { invoke?: (cmd: string, args?: unknown) => Promise<unknown> } }
+    ).__TAURI_INTERNALS__;
+    if (!tauri?.invoke || installingUpdate) return;
+    setInstallingUpdate(true);
+    try {
+      await tauri.invoke("install_update");
+    } catch (err) {
+      setInstallingUpdate(false);
+      showToast(
+        tr("Update failed: {message}", {
+          message: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    }
+  }, [installingUpdate, showToast]);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -1105,6 +1152,32 @@ export function App() {
           </button>
         </div>
       </header>
+
+      {availableUpdate && (
+        <div className="kuraso-update-banner" role="status">
+          <span>{tr("Kuraso {version} is available.", { version: `v${availableUpdate.version}` })}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              type="button"
+              className="kuraso-btn-primary"
+              style={{ paddingBlock: 4, paddingInline: 10, fontSize: "0.78rem" }}
+              disabled={installingUpdate}
+              onClick={() => void handleInstallUpdate()}
+            >
+              {installingUpdate ? tr("Downloading update…") : tr("Update & Restart")}
+            </button>
+            <button
+              type="button"
+              className="kuraso-icon-btn"
+              style={{ height: 26, paddingInline: 8, fontSize: "0.78rem" }}
+              disabled={installingUpdate}
+              onClick={() => setAvailableUpdate(null)}
+            >
+              {tr("Later")}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 3-Pane Workspace */}
       <div className="kuraso-workspace">
