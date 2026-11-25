@@ -11,101 +11,198 @@ interface NotesEditorProps {
   onOpenBacklinkSource?: (sourceId: string) => void;
 }
 
-function renderInlineWikiLinks(
-  text: string,
-  onFollow?: (target: string) => void,
-): ReactNode[] {
-  const parts: ReactNode[] = [];
-  const re = /\[\[([^\]|]+?)(?:\|([^\]]+))?\]\]/g;
-  let lastIdx = 0;
-  let m: RegExpExecArray | null;
-  let key = 0;
-
-  while ((m = re.exec(text)) !== null) {
-    if (m.index > lastIdx) {
-      parts.push(text.slice(lastIdx, m.index));
-    }
-    const target = (m[1] ?? "").trim();
-    const label = (m[2] ?? target).trim();
-    parts.push(
-      <button
-        key={`wl-${key++}`}
-        type="button"
-        className="kuraso-wikilink"
-        onClick={() => onFollow?.(target)}
-      >
-        [[{label}]]
-      </button>,
-    );
-    lastIdx = m.index + m[0].length;
-  }
-  if (lastIdx < text.length) {
-    parts.push(text.slice(lastIdx));
-  }
-  return parts;
-}
+type Follow = ((target: string) => void) | undefined;
 
 /**
- * Pure React Markdown preview (zero dangerouslySetInnerHTML) with `dir="auto"`
- * per block and clickable `[[wiki-links]]`.
+ * Inline Markdown: `code`, **bold**, *italic* / _italic_, ~~strike~~, [text](url) and
+ * [[wiki-links]]. Built as React elements (never HTML strings), so note text cannot
+ * inject markup. Links are shown, not followed: navigating would replace the app.
  */
-function SafeMarkdownPreview({
-  markdown,
-  onFollowWikiLink,
-}: {
-  markdown: string;
-  onFollowWikiLink?: (target: string) => void;
-}) {
-  const lines = markdown.split(/\r?\n/);
+function renderInline(text: string, onFollow: Follow, keyBase = "i"): ReactNode[] {
+  const out: ReactNode[] = [];
+  const re =
+    /(`[^`]+`)|(\[\[[^\]|]+?(?:\|[^\]]+)?\]\])|(\*\*[^*]+\*\*|__[^_]+__)|(~~[^~]+~~)|(\*[^*\s][^*]*\*|_[^_\s][^_]*_)|(\[[^\]]+\]\((?:https?:\/\/|mailto:)[^)\s]+\))/g;
+  let last = 0;
+  let k = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    const tok = m[0];
+    const key = `${keyBase}-${k++}`;
+    if (m[1]) {
+      out.push(<code key={key}>{tok.slice(1, -1)}</code>);
+    } else if (m[2]) {
+      const inner = tok.slice(2, -2);
+      const [target = "", label] = inner.split("|");
+      out.push(
+        <button key={key} type="button" className="kuraso-wikilink" onClick={() => onFollow?.(target.trim())}>
+          [[{(label ?? target).trim()}]]
+        </button>,
+      );
+    } else if (m[3]) {
+      out.push(<strong key={key}>{renderInline(tok.slice(2, -2), onFollow, key)}</strong>);
+    } else if (m[4]) {
+      out.push(<del key={key}>{renderInline(tok.slice(2, -2), onFollow, key)}</del>);
+    } else if (m[5]) {
+      out.push(<em key={key}>{renderInline(tok.slice(1, -1), onFollow, key)}</em>);
+    } else if (m[6]) {
+      const lm = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(tok);
+      out.push(
+        <span key={key} className="kuraso-md-link" title={lm?.[2]}>
+          {renderInline(lm?.[1] ?? tok, onFollow, key)}
+        </span>,
+      );
+    }
+    last = m.index + tok.length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
 
-  return (
-    <div className="kuraso-md-preview">
-      {lines.map((line, idx) => {
-        const trimmed = line.trim();
-        if (!trimmed) return <div key={idx} style={{ height: 8 }} />;
-        if (trimmed.startsWith("### ")) {
-          return (
-            <h4 key={idx} dir="auto" style={{ margin: "10px 0 4px" }}>
-              {renderInlineWikiLinks(trimmed.slice(4), onFollowWikiLink)}
-            </h4>
-          );
-        }
-        if (trimmed.startsWith("## ")) {
-          return (
-            <h3 key={idx} dir="auto" style={{ margin: "12px 0 4px" }}>
-              {renderInlineWikiLinks(trimmed.slice(3), onFollowWikiLink)}
-            </h3>
-          );
-        }
-        if (trimmed.startsWith("# ")) {
-          return (
-            <h2 key={idx} dir="auto" style={{ margin: "12px 0 6px", fontSize: "1.05rem" }}>
-              {renderInlineWikiLinks(trimmed.slice(2), onFollowWikiLink)}
-            </h2>
-          );
-        }
-        if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
-          return (
-            <div key={idx} dir="auto" style={{ paddingInlineStart: 12 }}>
-              • {renderInlineWikiLinks(trimmed.slice(2), onFollowWikiLink)}
-            </div>
-          );
-        }
-        if (trimmed.startsWith("> ")) {
-          return (
-            <blockquote key={idx} dir="auto" className="kuraso-ann-quote">
-              {renderInlineWikiLinks(trimmed.slice(2), onFollowWikiLink)}
-            </blockquote>
-          );
-        }
-        return (
-          <p key={idx} dir="auto" style={{ margin: "4px 0", lineHeight: 1.55 }}>
-            {renderInlineWikiLinks(trimmed, onFollowWikiLink)}
-          </p>
-        );
-      })}
-    </div>
-  );
+const isTableRow = (l: string) => /^\s*\|.*\|\s*$/.test(l);
+const isTableRule = (l: string) => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l);
+const cells = (l: string) =>
+  l
+    .trim()
+    .replace(/^\||\|$/g, "")
+    .split("|")
+    .map((c) => c.trim());
+
+/**
+ * Pure React Markdown preview (zero dangerouslySetInnerHTML): headings, lists (- * + and
+ * 1.), quotes, fenced code, tables, rules and paragraphs, each block with `dir="auto"`.
+ */
+function SafeMarkdownPreview({ markdown, onFollowWikiLink }: { markdown: string; onFollowWikiLink?: Follow }) {
+  const lines = markdown.split(/\r?\n/);
+  const blocks: ReactNode[] = [];
+  let i = 0;
+  let key = 0;
+  const inline = (t: string) => renderInline(t, onFollowWikiLink, `b${key}`);
+
+  while (i < lines.length) {
+    const line = lines[i] ?? "";
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      i++;
+      continue;
+    }
+    if (trimmed.startsWith("```")) {
+      const body: string[] = [];
+      i++;
+      while (i < lines.length && !(lines[i] ?? "").trim().startsWith("```")) body.push(lines[i++] ?? "");
+      i++;
+      blocks.push(
+        <pre key={key++} className="kuraso-md-code" dir="ltr">
+          <code>{body.join("\n")}</code>
+        </pre>,
+      );
+      continue;
+    }
+    const heading = /^(#{1,6})\s+(.*)$/.exec(trimmed);
+    if (heading) {
+      const level = Math.min(4, (heading[1] ?? "#").length + 1);
+      const Tag = `h${level}` as "h2" | "h3" | "h4";
+      blocks.push(
+        <Tag key={key++} dir="auto">
+          {inline(heading[2] ?? "")}
+        </Tag>,
+      );
+      i++;
+      continue;
+    }
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
+      blocks.push(<hr key={key++} />);
+      i++;
+      continue;
+    }
+    if (isTableRow(line) && isTableRule(lines[i + 1] ?? "")) {
+      const head = cells(line);
+      const rows: string[][] = [];
+      i += 2;
+      while (i < lines.length && isTableRow(lines[i] ?? "")) rows.push(cells(lines[i++] ?? ""));
+      blocks.push(
+        <div key={key++} className="kuraso-md-table-wrap">
+          <table className="kuraso-md-table">
+            <thead>
+              <tr>
+                {head.map((c, ci) => (
+                  <th key={ci} dir="auto">
+                    {inline(c)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, ri) => (
+                <tr key={ri}>
+                  {head.map((_, ci) => (
+                    <td key={ci} dir="auto">
+                      {inline(r[ci] ?? "")}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+      );
+      continue;
+    }
+    if (/^([-*+]|\d+[.)])\s+/.test(trimmed)) {
+      const ordered = /^\d+[.)]\s+/.test(trimmed);
+      const items: string[] = [];
+      while (i < lines.length && (ordered ? /^\s*\d+[.)]\s+/ : /^\s*[-*+]\s+/).test(lines[i] ?? "")) {
+        items.push((lines[i++] ?? "").trim().replace(/^([-*+]|\d+[.)])\s+/, ""));
+      }
+      const List = ordered ? "ol" : "ul";
+      blocks.push(
+        <List key={key++} dir="auto">
+          {items.map((it, ii) => {
+            const task = /^\[( |x|X)\]\s+(.*)$/.exec(it);
+            return (
+              <li key={ii}>
+                {task ? (
+                  <>
+                    <input type="checkbox" checked={task[1] !== " "} readOnly /> {inline(task[2] ?? "")}
+                  </>
+                ) : (
+                  inline(it)
+                )}
+              </li>
+            );
+          })}
+        </List>,
+      );
+      continue;
+    }
+    if (trimmed.startsWith(">")) {
+      const quote: string[] = [];
+      while (i < lines.length && (lines[i] ?? "").trim().startsWith(">")) quote.push((lines[i++] ?? "").trim().replace(/^>\s?/, ""));
+      blocks.push(
+        <blockquote key={key++} dir="auto" className="kuraso-ann-quote">
+          {inline(quote.join(" "))}
+        </blockquote>,
+      );
+      continue;
+    }
+    // Paragraph: consecutive plain lines.
+    const para: string[] = [];
+    while (i < lines.length) {
+      const l = lines[i] ?? "";
+      const t = l.trim();
+      if (!t || /^(#{1,6}\s|```|>|([-*+]|\d+[.)])\s)/.test(t) || (isTableRow(l) && isTableRule(lines[i + 1] ?? ""))) break;
+      para.push(t);
+      i++;
+    }
+    blocks.push(
+      <p key={key++} dir="auto">
+        {inline(para.join(" "))}
+      </p>,
+    );
+  }
+
+  return <div className="kuraso-md-preview">{blocks}</div>;
 }
 
 export function NotesEditor({

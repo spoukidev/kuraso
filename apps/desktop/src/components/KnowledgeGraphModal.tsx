@@ -3,6 +3,7 @@ import type { Collection, PaperMeta, Project } from "@kuraso/formats";
 import { extractWikiLinks, normalizeLinkKey } from "@kuraso/annotations";
 import { Network, X } from "lucide-react";
 import { tr } from "../i18n/tr";
+import { useEscapeToClose } from "./useEscapeToClose";
 
 interface KnowledgeGraphModalProps {
   open: boolean;
@@ -104,6 +105,8 @@ export function KnowledgeGraphModal({
 
     return { nodes: nodeList, edges: edgeList };
   }, [papers, collections, projects, notesByPaper]);
+
+  useEscapeToClose(open, onClose);
 
   if (!open) return null;
 

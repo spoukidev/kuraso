@@ -5,6 +5,7 @@ import { AlertTriangle, Sparkles, Table2, X } from "lucide-react";
 import type { AISettings } from "../state/aiStore";
 import { runChat } from "../state/aiBridge";
 import { tr } from "../i18n/tr";
+import { useEscapeToClose } from "./useEscapeToClose";
 
 interface CollectionToolsModalProps {
   open: boolean;
@@ -34,6 +35,8 @@ export function CollectionToolsModal({
   const [output, setOutput] = useState<string | null>(null);
   const [estTokens, setEstTokens] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
+
+  useEscapeToClose(open, onClose);
 
   if (!open) return null;
 

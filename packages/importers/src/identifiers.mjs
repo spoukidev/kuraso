@@ -30,6 +30,13 @@ export function detectIdentifiers(input) {
     if (bare) arxivId = bare[1];
   }
 
+  // arXiv's own DOIs (10.48550/arXiv.<id>) are registered with DataCite, not Crossref,
+  // so they are looked up through the arXiv API instead.
+  if (!arxivId && doi) {
+    const arxivDoi = doi.match(/^10\.48550\/arxiv\.(.+)$/i);
+    if (arxivDoi) arxivId = arxivDoi[1];
+  }
+
   return { doi, arxivId };
 }
 

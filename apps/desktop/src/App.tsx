@@ -75,11 +75,25 @@ import {
   type OutlineNode,
 } from "./state/readerStore";
 import {
+  clearPaperStorage,
+  hasStoredAnnotations,
+  hasStoredNotes,
   loadPaperAnnotations,
   loadPaperNotes,
   savePaperAnnotations,
   savePaperNotes,
 } from "./state/annotationsStore";
+import {
+  diskStoreAvailable,
+  flushDiskWrites,
+  listStoredPdfs,
+  loadPdfFromDisk,
+  loadTextFromDisk,
+  removePaperFromDisk,
+  savePdfToDisk,
+  saveTextToDisk,
+  setDiskWriteErrorHandler,
+} from "./state/diskStore";
 import {
   createCollectionRecord,
   createPaperRecord,
@@ -95,6 +109,18 @@ import { setTrLanguage, tr } from "./i18n/tr";
 
 // Heavy views load on first use: pdf.js only when a paper opens, dialogs only when opened.
 type ReaderView = "pdf" | "split" | "reflow";
+
+/** Real PDFs start with "%PDF" (some have a few junk bytes first). */
+function isPdfBytes(bytes: Uint8Array): boolean {
+  const head = new TextDecoder("latin1").decode(bytes.subarray(0, 1024));
+  return head.includes("%PDF-");
+}
+
+/** Titles that came from a file name ("paper", "1706.03762v7", "final_v3") get replaced by the real one. */
+function looksLikeFileName(title: string): boolean {
+  const t = title.trim();
+  return !/\s/.test(t) || /^\d{4}\.\d{4,5}(v\d+)?$/.test(t) || /_/.test(t);
+}
 
 const PdfViewer = lazy(() => import("./components/PdfViewer").then((m) => ({ default: m.PdfViewer })));
 const AISettingsModal = lazy(() => import("./components/AISettingsModal").then((m) => ({ default: m.AISettingsModal })));
@@ -187,11 +213,68 @@ export function App() {
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const bibInputRef = useRef<HTMLInputElement | null>(null);
+  // "Attach PDF to read": which library entry the next picked file belongs to.
+  const attachInputRef = useRef<HTMLInputElement | null>(null);
+  const attachTargetRef = useRef<PaperMeta | null>(null);
+  const [editRequestId, setEditRequestId] = useState<string | null>(null);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
     setTimeout(() => setToast((cur) => (cur === msg ? null : cur)), 3200);
   }, []);
+
+  // Notes and highlights go to browser storage (fast) and, on desktop, to plain files
+  // in the library folder (durable). A failed browser write is never silent.
+  const storageWarned = useRef(false);
+  const warnStorage = useCallback(() => {
+    if (storageWarned.current) return;
+    storageWarned.current = true;
+    showToast(
+      diskStoreAvailable()
+        ? tr("Browser storage is full — your work is still saved in the library folder.")
+        : tr("Storage is full — export your notes (.md) so nothing is lost."),
+    );
+  }, [showToast]);
+
+  const persistAnnotations = useCallback(
+    (paperId: string, list: Annotation[]) => {
+      if (!savePaperAnnotations(paperId, list)) warnStorage();
+      saveTextToDisk(paperId, "annotations.json", JSON.stringify(list, null, 1), 300);
+    },
+    [warnStorage],
+  );
+
+  const persistNotes = useCallback(
+    (paperId: string, markdown: string) => {
+      if (!savePaperNotes(paperId, markdown)) warnStorage();
+      saveTextToDisk(paperId, "notes.md", markdown, 800);
+    },
+    [warnStorage],
+  );
+
+  // Desktop: which papers have their PDF saved, flush pending writes when leaving.
+  useEffect(() => {
+    if (!diskStoreAvailable()) return;
+    setDiskWriteErrorHandler((message) => showToast(tr("Could not save to the library folder: {message}", { message })));
+    void listStoredPdfs().then((ids) => {
+      if (ids.size === 0) return;
+      setHasBytesMap((m) => {
+        const next = { ...m };
+        for (const id of ids) next[id] = true;
+        return next;
+      });
+    });
+    const flush = () => {
+      if (document.visibilityState === "hidden") flushDiskWrites();
+    };
+    document.addEventListener("visibilitychange", flush);
+    window.addEventListener("beforeunload", flushDiskWrites);
+    return () => {
+      setDiskWriteErrorHandler(null);
+      document.removeEventListener("visibilitychange", flush);
+      window.removeEventListener("beforeunload", flushDiskWrites);
+    };
+  }, [showToast]);
 
   // Silent background check for desktop app updates (no-op in browser or offline)
   useEffect(() => {
@@ -277,13 +360,8 @@ export function App() {
     [tabs, activeTabId],
   );
 
-  const openPaperInReader = useCallback(
-    (paper: PaperMeta) => {
-      const bytes = pdfBytesRef.current[paper.id];
-      if (!bytes) {
-        showToast(tr("No local PDF attached yet for this metadata entry — drop or import its PDF."));
-        return;
-      }
+  const openPaperWithBytes = useCallback(
+    (paper: PaperMeta, bytes: Uint8Array) => {
       const savedPage = loadSavedPositions()[paper.id] ?? paper.readingPosition?.page ?? 1;
       setAnnotationsByPaper((prev) =>
         prev[paper.id] ? prev : { ...prev, [paper.id]: loadPaperAnnotations(paper.id) },
@@ -313,23 +391,97 @@ export function App() {
       setActiveTabId(paper.id);
       setCenterMode("reader");
       setJumpToPage(null);
+
+      // Browser storage was cleared or never had this paper: fall back to the files on disk.
+      if (diskStoreAvailable()) {
+        if (!hasStoredAnnotations(paper.id)) {
+          void loadTextFromDisk(paper.id, "annotations.json").then((raw) => {
+            if (!raw) return;
+            try {
+              const list = JSON.parse(raw) as Annotation[];
+              if (!Array.isArray(list) || list.length === 0) return;
+              savePaperAnnotations(paper.id, list);
+              setAnnotationsByPaper((prev) => ({ ...prev, [paper.id]: list }));
+            } catch {
+              // Unreadable file: keep the in-app (empty) list.
+            }
+          });
+        }
+        if (!hasStoredNotes(paper.id)) {
+          void loadTextFromDisk(paper.id, "notes.md").then((md) => {
+            if (md === null) return;
+            savePaperNotes(paper.id, md);
+            setNotesByPaper((prev) => ({ ...prev, [paper.id]: md }));
+          });
+        }
+      }
     },
-    [showToast],
+    [],
+  );
+
+  const openPaperInReader = useCallback(
+    async (paper: PaperMeta) => {
+      let bytes: Uint8Array | null = pdfBytesRef.current[paper.id] ?? null;
+      if (!bytes) {
+        bytes = await loadPdfFromDisk(paper.id);
+        if (bytes) {
+          pdfBytesRef.current[paper.id] = bytes;
+          setHasBytesMap((m) => ({ ...m, [paper.id]: true }));
+        }
+      }
+      if (!bytes) {
+        // No PDF yet (e.g. added by DOI): let the reader pick the file for this entry.
+        attachTargetRef.current = paper;
+        showToast(tr("Choose the PDF for “{title}”.", { title: paper.title }));
+        attachInputRef.current?.click();
+        return;
+      }
+      openPaperWithBytes(paper, bytes);
+    },
+    [openPaperWithBytes, showToast],
+  );
+
+  const attachPdfToPaper = useCallback(
+    async (file: File | undefined) => {
+      const paper = attachTargetRef.current;
+      attachTargetRef.current = null;
+      if (!paper || !file) return;
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      if (!isPdfBytes(bytes)) {
+        showToast(tr("“{name}” is not a PDF file.", { name: file.name }));
+        return;
+      }
+      pdfBytesRef.current[paper.id] = bytes;
+      setHasBytesMap((m) => ({ ...m, [paper.id]: true }));
+      void savePdfToDisk(paper.id, bytes).catch((err: unknown) =>
+        showToast(tr("Could not save to the library folder: {message}", { message: String(err) })),
+      );
+      openPaperWithBytes(paper, bytes);
+    },
+    [openPaperWithBytes, showToast],
   );
 
   const importPdfFile = useCallback(
     async (file: File) => {
-      if (!file.name.toLowerCase().endsWith(".pdf")) return;
       const buffer = await file.arrayBuffer();
       const bytes = new Uint8Array(buffer);
+      if (!isPdfBytes(bytes)) {
+        showToast(tr("“{name}” is not a PDF file.", { name: file.name }));
+        return;
+      }
       const fileHash = await sha256Hex(bytes);
+      const keepOnDisk = (id: string) =>
+        void savePdfToDisk(id, bytes).catch((err: unknown) =>
+          showToast(tr("Could not save to the library folder: {message}", { message: String(err) })),
+        );
 
       const dup = findDuplicatePaper(papers, fileHash, null);
       if (dup) {
         pdfBytesRef.current[dup.paper.id] = bytes;
         setHasBytesMap((m) => ({ ...m, [dup.paper.id]: true }));
+        keepOnDisk(dup.paper.id);
         showToast(tr("Already in library ({reason}) — opening existing paper.", { reason: tr(dup.reason) }));
-        openPaperInReader(dup.paper);
+        openPaperWithBytes(dup.paper, bytes);
         return;
       }
 
@@ -340,6 +492,7 @@ export function App() {
 
       pdfBytesRef.current[paper.id] = bytes;
       setHasBytesMap((m) => ({ ...m, [paper.id]: true }));
+      keepOnDisk(paper.id);
       setPapers((prev) => [paper, ...prev]);
 
       // If currently viewing a collection, assign the imported paper to it.
@@ -354,9 +507,42 @@ export function App() {
         );
       }
 
-      openPaperInReader(paper);
+      openPaperWithBytes(paper, bytes);
     },
-    [papers, libraryFilter, openPaperInReader, showToast],
+    [papers, libraryFilter, openPaperWithBytes, showToast],
+  );
+
+  const removePaper = useCallback(
+    (paper: PaperMeta) => {
+      setPapers((prev) => prev.filter((p) => p.id !== paper.id));
+      setCollections((prev) =>
+        prev.map((c) =>
+          c.paperIds.includes(paper.id) ? { ...c, paperIds: c.paperIds.filter((id) => id !== paper.id) } : c,
+        ),
+      );
+      setTabs((prev) => prev.filter((t) => t.id !== paper.id));
+      if (activeTabId === paper.id) {
+        setActiveTabId(null);
+        setCenterMode("library");
+      }
+      setAnnotationsByPaper((prev) => {
+        const { [paper.id]: _gone, ...rest } = prev;
+        return rest;
+      });
+      setNotesByPaper((prev) => {
+        const { [paper.id]: _gone, ...rest } = prev;
+        return rest;
+      });
+      setHasBytesMap((prev) => {
+        const { [paper.id]: _gone, ...rest } = prev;
+        return rest;
+      });
+      delete pdfBytesRef.current[paper.id];
+      clearPaperStorage(paper.id);
+      void removePaperFromDisk(paper.id).catch(() => undefined);
+      showToast(tr("Removed “{title}” from the library.", { title: paper.title }));
+    },
+    [activeTabId, showToast],
   );
 
   const openFiles = useCallback(
@@ -444,6 +630,7 @@ export function App() {
       scanned: boolean;
       outline: OutlineNode[];
       structure: PaperStructure;
+      title: string | null;
     }) => {
       updateActiveTab((t) => ({
         ...t,
@@ -453,13 +640,24 @@ export function App() {
         structure: meta.structure,
       }));
       if (activeTabId) {
+        const better = meta.title;
         setPapers((prev) =>
           prev.map((p) =>
             p.id === activeTabId
-              ? { ...p, pageCount: meta.pageCount, scanned: meta.scanned }
+              ? {
+                  ...p,
+                  pageCount: meta.pageCount,
+                  scanned: meta.scanned,
+                  ...(better && looksLikeFileName(p.title) ? { title: better } : {}),
+                }
               : p,
           ),
         );
+        if (better) {
+          setTabs((prev) =>
+            prev.map((t) => (t.id === activeTabId && looksLikeFileName(t.title) ? { ...t, title: better } : t)),
+          );
+        }
       }
     },
     [updateActiveTab, activeTabId],
@@ -480,15 +678,17 @@ export function App() {
       if (!activeTabId) return;
       setAnnotationsByPaper((prev) => {
         const next = [ann, ...(prev[activeTabId] ?? [])];
-        savePaperAnnotations(activeTabId, next);
+        persistAnnotations(activeTabId, next);
         return { ...prev, [activeTabId]: next };
       });
       if (focusNotes) {
+        // "Highlight & add margin note": open the panel with this card already in edit mode.
         setRightOpen(true);
         setRightTab("annotations");
+        setEditRequestId(ann.id);
       }
     },
-    [activeTabId],
+    [activeTabId, persistAnnotations],
   );
 
   const handleUpdateAnnotation = useCallback(
@@ -496,11 +696,11 @@ export function App() {
       if (!activeTabId) return;
       setAnnotationsByPaper((prev) => {
         const next = (prev[activeTabId] ?? []).map((a) => (a.id === updated.id ? updated : a));
-        savePaperAnnotations(activeTabId, next);
+        persistAnnotations(activeTabId, next);
         return { ...prev, [activeTabId]: next };
       });
     },
-    [activeTabId],
+    [activeTabId, persistAnnotations],
   );
 
   const handleDeleteAnnotation = useCallback(
@@ -508,11 +708,11 @@ export function App() {
       if (!activeTabId) return;
       setAnnotationsByPaper((prev) => {
         const next = (prev[activeTabId] ?? []).filter((a) => a.id !== annId);
-        savePaperAnnotations(activeTabId, next);
+        persistAnnotations(activeTabId, next);
         return { ...prev, [activeTabId]: next };
       });
     },
-    [activeTabId],
+    [activeTabId, persistAnnotations],
   );
 
   const backlinksIndex = useMemo(() => {
@@ -568,11 +768,11 @@ export function App() {
     (markdown: string) => {
       if (!activeTabId) return;
       setNotesByPaper((prev) => {
-        savePaperNotes(activeTabId, markdown);
+        persistNotes(activeTabId, markdown);
         return { ...prev, [activeTabId]: markdown };
       });
     },
-    [activeTabId],
+    [activeTabId, persistNotes],
   );
 
   const handleCreateCollection = useCallback(() => {
@@ -1008,6 +1208,16 @@ export function App() {
         }}
       />
       <input
+        ref={attachInputRef}
+        type="file"
+        accept="application/pdf,.pdf"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          void attachPdfToPaper(e.target.files?.[0]);
+          e.target.value = "";
+        }}
+      />
+      <input
         ref={bibInputRef}
         type="file"
         accept=".bib,application/x-bibtex,text/plain"
@@ -1159,7 +1369,7 @@ export function App() {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button
               type="button"
-              className="kuraso-btn-primary"
+              className="kuraso-primary-btn"
               style={{ paddingBlock: 4, paddingInline: 10, fontSize: "0.78rem" }}
               disabled={installingUpdate}
               onClick={() => void handleInstallUpdate()}
@@ -1501,6 +1711,7 @@ export function App() {
               onRequestImportBibtex={() => bibInputRef.current?.click()}
               onOpenCollectionTools={() => setCollectionToolsOpen(true)}
               onNotify={showToast}
+              onRemovePaper={removePaper}
               hasBytesMap={hasBytesMap}
             />
           )}
@@ -1588,10 +1799,12 @@ export function App() {
                     }}
                     onUpdateAnnotation={handleUpdateAnnotation}
                     onDeleteAnnotation={handleDeleteAnnotation}
+                    editRequestId={editRequestId}
+                    onEditRequestHandled={() => setEditRequestId(null)}
                   />
                 ) : (
                   <p className="kuraso-panel-hint">
-                    Open a PDF to create and gather highlights.
+                    {tr("Open a PDF to create and gather highlights.")}
                   </p>
                 ))}
 
@@ -1639,7 +1852,7 @@ export function App() {
                   />
                 ) : (
                   <p className="kuraso-panel-hint">
-                    Open a PDF to summarize or ask grounded questions with your own AI.
+                    {tr("Open a PDF to summarize or ask grounded questions with your own AI.")}
                   </p>
                 ))}
             </div>

@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import type { Collection, PaperMeta, ReadingStatus } from "@kuraso/formats";
 import { formatCitation, type CitationStyle } from "@kuraso/exporters";
-import { Copy, Edit3, FileText, FolderPlus, Plus, Search, Table2, Upload, X } from "lucide-react";
+import { Copy, Edit3, FileText, FolderPlus, Plus, Search, Table2, Upload, X, Trash2 } from "lucide-react";
 import { tr } from "../i18n/tr";
+import { useEscapeToClose } from "./useEscapeToClose";
 
 interface LibraryViewProps {
   title: string;
@@ -18,6 +19,7 @@ interface LibraryViewProps {
   onRequestImportBibtex?: () => void;
   onOpenCollectionTools?: () => void;
   onNotify?: (msg: string) => void;
+  onRemovePaper?: (paper: PaperMeta) => void;
   hasBytesMap: Record<string, boolean>;
 }
 
@@ -46,16 +48,19 @@ export function LibraryView({
   onOpenCollectionTools,
   onNotify,
   hasBytesMap,
+  onRemovePaper,
 }: LibraryViewProps) {
   const [sortBy, setSortBy] = useState<SortField>("addedAt");
   const [citeStyle, setCiteStyle] = useState<CitationStyle>("apa");
   const [editing, setEditing] = useState<PaperMeta | null>(null);
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editAuthors, setEditAuthors] = useState("");
   const [editYear, setEditYear] = useState("");
   const [editVenue, setEditVenue] = useState("");
   const [editDoi, setEditDoi] = useState("");
   const [editTags, setEditTags] = useState("");
+  useEscapeToClose(Boolean(editing), () => setEditing(null));
 
   const sorted = useMemo(() => {
     const list = [...papers];
@@ -154,7 +159,7 @@ export function LibraryView({
               onClick={onRequestImportBibtex}
             >
               <Upload size={14} />
-              <span>.bib / Zotero</span>
+              <bdi dir="ltr">.bib / Zotero</bdi>
             </button>
           )}
 
@@ -326,6 +331,28 @@ export function LibraryView({
                         >
                           <Edit3 size={14} />
                         </button>
+                        {onRemovePaper && (
+                          // Two clicks: the first arms the button, the second removes.
+                          <button
+                            type="button"
+                            className="kuraso-icon-btn"
+                            data-danger={confirmRemoveId === paper.id ? "true" : "false"}
+                            title={confirmRemoveId === paper.id ? tr("Click again to remove") : tr("Remove from library")}
+                            aria-label={tr("Remove from library")}
+                            onClick={() => {
+                              if (confirmRemoveId === paper.id) {
+                                setConfirmRemoveId(null);
+                                onRemovePaper(paper);
+                              } else {
+                                setConfirmRemoveId(paper.id);
+                                window.setTimeout(() => setConfirmRemoveId((cur) => (cur === paper.id ? null : cur)), 4000);
+                              }
+                            }}
+                          >
+                            <Trash2 size={14} />
+                            {confirmRemoveId === paper.id && <span>{tr("Remove?")}</span>}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

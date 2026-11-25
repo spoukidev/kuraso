@@ -75,7 +75,32 @@ interface PdfViewerProps {
     scanned: boolean;
     outline: OutlineNode[];
     structure: PaperStructure;
+    /** Best guess at the paper's real title (PDF metadata, else the largest text on page 1). */
+    title: string | null;
   }) => void;
+}
+
+/** A stored PDF Title is often junk ("Microsoft Word - final.docx", "untitled", a file name). */
+function plausibleTitle(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const t = raw.replace(/\s+/g, " ").trim();
+  if (t.length < 6 || t.length > 250) return null;
+  if (/\.(pdf|docx?|tex|dvi|ps)$/i.test(t) || /^(untitled|microsoft word|title|paper|main|document)\b/i.test(t)) return null;
+  if (!/\s/.test(t)) return null;
+  return t;
+}
+
+/** The title is usually the largest text in the top part of page 1. */
+function titleFromFirstPage(page: ExtractedPageLines | undefined, pageHeight: number): string | null {
+  if (!page || page.lines.length === 0) return null;
+  const size = (l: { fontHeight?: number }) => l.fontHeight ?? 0;
+  const sizes = page.lines.map(size).sort((a, b) => a - b);
+  const median = sizes[Math.floor(sizes.length / 2)] ?? 0;
+  const top = page.lines.filter((l) => (l.rect?.[1] ?? 0) > pageHeight * 0.45);
+  const max = Math.max(0, ...top.map(size));
+  if (max < median * 1.2) return null;
+  const parts = top.filter((l) => size(l) >= max * 0.94).map((l) => l.text);
+  return plausibleTitle(parts.join(" "));
 }
 
 interface PositionedSpan {
@@ -699,11 +724,15 @@ export function PdfViewer({
                 }));
 
           setPageTexts(texts);
+          const info = (await loaded.getMetadata().catch(() => null))?.info as { Title?: unknown } | undefined;
+          const firstHeight = (await loaded.getPage(1)).getViewport({ scale: 1 }).height;
+          if (cancelled) return;
           onDocumentLoaded({
             pageCount: loaded.numPages,
             scanned: totalChars < 20,
             outline: mergedOutline,
             structure,
+            title: plausibleTitle(info?.Title) ?? titleFromFirstPage(extractedPages[0], firstHeight),
           });
         }
       })

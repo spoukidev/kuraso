@@ -4,6 +4,7 @@ import { exportCollectionToBibtex } from "@kuraso/exporters";
 import { Briefcase, Download, Plus, X } from "lucide-react";
 import { createProjectRecord } from "../state/knowledgeStore";
 import { tr } from "../i18n/tr";
+import { useEscapeToClose } from "./useEscapeToClose";
 
 interface ProjectsModalProps {
   open: boolean;
@@ -26,6 +27,8 @@ export function ProjectsModal({
 }: ProjectsModalProps) {
   const [selectedId, setSelectedId] = useState<string | null>(projects[0]?.id ?? null);
   const [newName, setNewName] = useState("");
+
+  useEscapeToClose(open, onClose);
 
   if (!open) return null;
 

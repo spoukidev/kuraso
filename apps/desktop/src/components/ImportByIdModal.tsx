@@ -7,6 +7,22 @@ import {
 } from "@kuraso/importers";
 import { X } from "lucide-react";
 import { tr } from "../i18n/tr";
+import { useEscapeToClose } from "./useEscapeToClose";
+import { metadataFetch } from "../state/diskStore";
+
+/** Turn fetch / HTTP failures into a sentence a reader can act on. */
+function friendlyLookupError(err: unknown, service: string): string {
+  const message = err instanceof Error ? err.message : String(err);
+  const status = Number(/\((\d{3})\)/.exec(message)?.[1] ?? 0);
+  if (status === 404) return tr("{service} has no record for this identifier. Check it and try again.", { service });
+  if (status === 429 || status === 503) return tr("{service} is busy right now. Try again in a minute.", { service });
+  if (status >= 500) return tr("{service} had a server error. Try again later.", { service });
+  if (/failed to fetch|network|load failed|timed? ?out|dns|connect/i.test(message)) {
+    return tr("Couldn't reach {service}. Check your internet connection and try again.", { service });
+  }
+  if (/no arxiv entry/i.test(message)) return tr("arXiv has no paper with this ID.");
+  return tr("Metadata lookup failed. Check your connection or add manually.");
+}
 
 interface ImportByIdModalProps {
   open: boolean;
@@ -19,6 +35,8 @@ export function ImportByIdModal({ open, onClose, onImported }: ImportByIdModalPr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEscapeToClose(open, onClose);
+
   if (!open) return null;
 
   async function handleLookup() {
@@ -30,19 +48,16 @@ export function ImportByIdModal({ open, onClose, onImported }: ImportByIdModalPr
     }
 
     setLoading(true);
+    const service = detected.arxivId ? "arXiv" : "Crossref";
     try {
       const meta = detected.arxivId
-        ? await fetchMetadataByArxiv(detected.arxivId)
-        : await fetchMetadataByDoi(detected.doi!);
+        ? await fetchMetadataByArxiv(detected.arxivId, metadataFetch)
+        : await fetchMetadataByDoi(detected.doi!, metadataFetch);
       onImported(meta);
       setInput("");
       onClose();
     } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : tr("Metadata lookup failed. Check your connection or add manually."),
-      );
+      setError(friendlyLookupError(err, service));
     } finally {
       setLoading(false);
     }
@@ -65,7 +80,7 @@ export function ImportByIdModal({ open, onClose, onImported }: ImportByIdModalPr
         </div>
         <div className="kuraso-dialog-body">
           <p style={{ margin: 0, fontSize: "0.83rem", color: "var(--kuraso-text-secondary)" }}>
-            Paste a DOI, arXiv ID, or URL. Kuraso fetches metadata directly from Crossref or arXiv.
+            {tr("Paste a DOI, arXiv ID, or URL. Kuraso fetches metadata directly from Crossref or arXiv.")}
           </p>
           <input
             className="kuraso-input"

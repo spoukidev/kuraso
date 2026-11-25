@@ -51,3 +51,24 @@ describe("@kuraso/importers arXiv Atom parser", () => {
     assert.equal(meta.openAccessPdfUrl, "https://arxiv.org/pdf/1706.03762.pdf");
   });
 });
+
+describe("@kuraso/importers metadata cleanup", () => {
+  it("routes arXiv DOIs (10.48550/arXiv.*) to the arXiv lookup", async () => {
+    const { detectIdentifiers } = await import("../src/identifiers.mjs");
+    assert.equal(detectIdentifiers("10.48550/arXiv.1706.03762").arxivId, "1706.03762");
+    assert.equal(detectIdentifiers("https://doi.org/10.48550/arXiv.2401.01234").arxivId, "2401.01234");
+    assert.equal(detectIdentifiers("10.1109/SP54263.2024.00012").arxivId, null);
+  });
+
+  it("strips markup and decodes entities in titles and author names", async () => {
+    const { cleanMetadataText, parseArxivAtomXml } = await import("../src/metadata.mjs");
+    assert.equal(cleanMetadataText("Attention &amp; <i>Transformers</i>: a &#x3B1;-study"), "Attention & Transformers: a α-study");
+    assert.equal(cleanMetadataText("<jats:p>First.</jats:p><jats:p>Second.</jats:p>"), "First. Second.");
+    const meta = parseArxivAtomXml(
+      "<feed><entry><title>Deep &amp; Wide</title><published>2017-06-12</published><author><name>A. B&amp;C</name></author></entry></feed>",
+      "1706.03762",
+    );
+    assert.equal(meta.title, "Deep & Wide");
+    assert.equal(meta.authors[0].name, "A. B&C");
+  });
+});

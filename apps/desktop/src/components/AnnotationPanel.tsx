@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Annotation, HighlightColor } from "@kuraso/formats";
 import {
   filterAndGroupAnnotations,
@@ -15,6 +15,9 @@ interface AnnotationPanelProps {
   onJumpToPage: (page: number) => void;
   onUpdateAnnotation: (updated: Annotation) => void;
   onDeleteAnnotation: (id: string) => void;
+  /** Open this annotation's note editor (set right after "Highlight & add note"). */
+  editRequestId?: string | null;
+  onEditRequestHandled?: () => void;
 }
 
 const COLORS: HighlightColor[] = ["yellow", "green", "blue", "red", "purple"];
@@ -34,6 +37,8 @@ export function AnnotationPanel({
   onJumpToPage,
   onUpdateAnnotation,
   onDeleteAnnotation,
+  editRequestId,
+  onEditRequestHandled,
 }: AnnotationPanelProps) {
   const [colorFilter, setColorFilter] = useState<HighlightColor | "all">("all");
   const [tagFilter, setTagFilter] = useState<string | "all">("all");
@@ -62,6 +67,24 @@ export function AnnotationPanel({
     [annotations, colorFilter, tagFilter, query, groupBy],
   );
 
+  useEffect(() => {
+    if (!editRequestId) return;
+    const ann = annotations.find((a) => a.id === editRequestId);
+    if (!ann) return;
+    // Make sure the new card is visible, then open its editor.
+    setColorFilter("all");
+    setTagFilter("all");
+    setQuery("");
+    beginEdit(ann);
+    onEditRequestHandled?.();
+    requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLElement>(`[data-ann-id="${CSS.escape(ann.id)}"]`);
+      el?.scrollIntoView({ block: "nearest" });
+      el?.querySelector<HTMLTextAreaElement>("textarea")?.focus();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editRequestId, annotations]);
+
   function beginEdit(ann: Annotation) {
     setEditingId(ann.id);
     setNoteDraft(ann.note ?? "");
@@ -69,10 +92,11 @@ export function AnnotationPanel({
   }
 
   function commitEdit(ann: Annotation) {
+    // "#tags" written inside the note count too, as the "+ Add a margin note or #tags" hint says.
+    const fromNote = Array.from(noteDraft.matchAll(/(?:^|\s)#([\p{L}\p{N}_-]+)/gu), (m) => m[1] ?? "");
     const normalizedTags = Array.from(
       new Set(
-        tagsDraft
-          .split(",")
+        [...tagsDraft.split(","), ...fromNote]
           .map((t) => t.trim())
           .filter(Boolean)
           .map((t) => (t.startsWith("#") ? t : `#${t}`)),
@@ -182,7 +206,7 @@ export function AnnotationPanel({
               const quote = getAnnotationQuote(ann);
               const isEditing = editingId === ann.id;
               return (
-                <div key={ann.id} className="kuraso-ann-card">
+                <div key={ann.id} className="kuraso-ann-card" data-ann-id={ann.id}>
                   <div className="kuraso-ann-head">
                     <span className="kuraso-ann-label" style={{ backgroundColor: style.cssMarker }}>
                       {tr(ann.label ?? SEMANTIC_LABELS[ann.color] ?? ann.color).replace(/-/g, " ")}

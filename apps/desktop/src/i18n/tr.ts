@@ -407,6 +407,53 @@ const CATALOG: Record<string, Entry> = {
     "Kuraso {version} est disponible.",
     "الإصدار {version} من Kuraso متاح الآن.",
   ],
+  "Browser storage is full — your work is still saved in the library folder.": [
+    "Le stockage du navigateur est plein — votre travail reste enregistré dans le dossier de la bibliothèque.",
+    "ذاكرة المتصفح ممتلئة — عملك ما زال محفوظاً في مجلد المكتبة.",
+  ],
+  "Storage is full — export your notes (.md) so nothing is lost.": [
+    "Le stockage est plein — exportez vos notes (.md) pour ne rien perdre.",
+    "الذاكرة ممتلئة — صدّر ملاحظاتك (.md) حتى لا يضيع شيء.",
+  ],
+  "Could not save to the library folder: {message}": [
+    "Impossible d’enregistrer dans le dossier de la bibliothèque : {message}",
+    "تعذّر الحفظ في مجلد المكتبة: {message}",
+  ],
+  "Choose the PDF for “{title}”.": ["Choisissez le PDF de « {title} ».", "اختر ملف PDF الخاص بـ«{title}»."],
+  "“{name}” is not a PDF file.": ["« {name} » n’est pas un fichier PDF.", "«{name}» ليس ملف PDF."],
+  "Removed “{title}” from the library.": ["« {title} » retiré de la bibliothèque.", "أُزيلت «{title}» من المكتبة."],
+  "Remove from library": ["Retirer de la bibliothèque", "إزالة من المكتبة"],
+  "Click again to remove": ["Cliquez à nouveau pour retirer", "اضغط مرة أخرى للإزالة"],
+  "Remove?": ["Retirer ?", "إزالة؟"],
+  "{service} has no record for this identifier. Check it and try again.": [
+    "{service} ne connaît pas cet identifiant. Vérifiez-le et réessayez.",
+    "لا يوجد سجل لهذا المعرّف في {service}. تحقق منه وحاول مجدداً.",
+  ],
+  "{service} is busy right now. Try again in a minute.": [
+    "{service} est surchargé. Réessayez dans une minute.",
+    "{service} مشغول حالياً. حاول بعد دقيقة.",
+  ],
+  "{service} had a server error. Try again later.": [
+    "{service} a rencontré une erreur serveur. Réessayez plus tard.",
+    "حدث خطأ في خادم {service}. حاول لاحقاً.",
+  ],
+  "Couldn't reach {service}. Check your internet connection and try again.": [
+    "Impossible de joindre {service}. Vérifiez votre connexion internet et réessayez.",
+    "تعذّر الوصول إلى {service}. تحقق من اتصالك بالإنترنت وحاول مجدداً.",
+  ],
+  "arXiv has no paper with this ID.": ["arXiv n’a aucun article avec cet identifiant.", "لا توجد ورقة على arXiv بهذا المعرّف."],
+  "Open a PDF to create and gather highlights.": [
+    "Ouvrez un PDF pour créer et rassembler vos surlignages.",
+    "افتح ملف PDF لإنشاء التظليلات وجمعها.",
+  ],
+  "Open a PDF to summarize or ask grounded questions with your own AI.": [
+    "Ouvrez un PDF pour le résumer ou poser des questions sourcées avec votre IA.",
+    "افتح ملف PDF لتلخيصه أو طرح أسئلة موثَّقة بذكائك الاصطناعي.",
+  ],
+  "Paste a DOI, arXiv ID, or URL. Kuraso fetches metadata directly from Crossref or arXiv.": [
+    "Collez un DOI, un identifiant arXiv ou une URL. Kuraso récupère les métadonnées directement auprès de Crossref ou d’arXiv.",
+    "الصق DOI أو معرّف arXiv أو رابطاً. يجلب كراسو البيانات الوصفية مباشرة من Crossref أو arXiv.",
+  ],
   "Update & Restart": ["Mettre à jour et redémarrer", "تحديث وإعادة التشغيل"],
   "Downloading update…": ["Téléchargement de la mise à jour…", "جارٍ تنزيل التحديث…"],
   Later: ["Plus tard", "لاحقاً"],

@@ -5,7 +5,8 @@ use kuraso_index::{RebuildStats, SearchHit, SearchIndex};
 use kuraso_library::{CollectionsFile, Library, PaperMeta, SyncConflict};
 use serde::Serialize;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use tauri::Manager;
 use tauri_plugin_updater::UpdaterExt;
 
 #[derive(Debug, Serialize)]
@@ -69,6 +70,9 @@ fn import_pdf_to_library(
     year: Option<i32>,
     doi: Option<String>,
 ) -> Result<PaperMeta, String> {
+    if !kuraso_pdf::is_pdf_path(Path::new(&source_pdf_path)) {
+        return Err("Only .pdf files can be imported".to_string());
+    }
     let bytes =
         fs::read(&source_pdf_path).map_err(|e| format!("Failed to read source PDF: {e}"))?;
     let lib = Library::open_or_init(PathBuf::from(library_path)).map_err(|e| e.to_string())?;
@@ -227,6 +231,151 @@ async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+
+// ── Paper store ──────────────────────────────────────────────────────────────
+// Plain files the reader can always open: <Documents>/Kuraso/papers/<paper-id>/
+//   paper.pdf · notes.md · annotations.json
+// Paper ids come from the webview, so they are validated before touching the disk.
+
+const STORE_FILES: [&str; 2] = ["notes.md", "annotations.json"];
+
+fn valid_paper_id(id: &str) -> Result<(), String> {
+    let ok = !id.is_empty()
+        && id.len() <= 80
+        && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
+    if ok {
+        Ok(())
+    } else {
+        Err("Invalid paper id".to_string())
+    }
+}
+
+fn store_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let base = app
+        .path()
+        .document_dir()
+        .or_else(|_| app.path().app_data_dir())
+        .map_err(|e| format!("No folder available for the library: {e}"))?;
+    Ok(base.join("Kuraso"))
+}
+
+fn paper_dir(app: &tauri::AppHandle, id: &str) -> Result<PathBuf, String> {
+    valid_paper_id(id)?;
+    Ok(store_root(app)?.join("papers").join(id))
+}
+
+/// Write via a temporary file and rename, so a crash never leaves half a file.
+fn write_file_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    let dir = path.parent().ok_or("Invalid path")?;
+    fs::create_dir_all(dir).map_err(|e| format!("Could not create {}: {e}", dir.display()))?;
+    let tmp = path.with_extension("tmp");
+    fs::write(&tmp, bytes).map_err(|e| format!("Could not write {}: {e}", tmp.display()))?;
+    fs::rename(&tmp, path).map_err(|e| format!("Could not save {}: {e}", path.display()))
+}
+
+#[tauri::command]
+fn store_location(app: tauri::AppHandle) -> Result<String, String> {
+    Ok(store_root(&app)?.display().to_string())
+}
+
+/// Ids of papers whose PDF is stored on disk.
+#[tauri::command]
+fn store_list_pdfs(app: tauri::AppHandle) -> Result<Vec<String>, String> {
+    let papers = store_root(&app)?.join("papers");
+    let Ok(entries) = fs::read_dir(&papers) else {
+        return Ok(Vec::new());
+    };
+    Ok(entries
+        .flatten()
+        .filter(|e| e.path().join("paper.pdf").is_file())
+        .filter_map(|e| e.file_name().into_string().ok())
+        .filter(|id| valid_paper_id(id).is_ok())
+        .collect())
+}
+
+/// Raw-body command: the PDF bytes arrive as the invoke body, the paper id in a header.
+#[tauri::command]
+fn store_save_pdf(app: tauri::AppHandle, request: tauri::ipc::Request<'_>) -> Result<(), String> {
+    let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
+        return Err("Expected raw PDF bytes".to_string());
+    };
+    if !bytes.starts_with(b"%PDF") {
+        return Err("Not a PDF file".to_string());
+    }
+    let id = request
+        .headers()
+        .get("x-paper-id")
+        .and_then(|v| v.to_str().ok())
+        .ok_or("Missing paper id")?;
+    write_file_atomic(&paper_dir(&app, id)?.join("paper.pdf"), bytes)
+}
+
+#[tauri::command]
+fn store_load_pdf(app: tauri::AppHandle, id: String) -> Result<tauri::ipc::Response, String> {
+    let path = paper_dir(&app, &id)?.join("paper.pdf");
+    let bytes = fs::read(&path).map_err(|e| format!("PDF not found on disk: {e}"))?;
+    Ok(tauri::ipc::Response::new(bytes))
+}
+
+#[tauri::command]
+fn store_save_text(app: tauri::AppHandle, id: String, name: String, text: String) -> Result<(), String> {
+    if !STORE_FILES.contains(&name.as_str()) {
+        return Err("Unknown store file".to_string());
+    }
+    write_file_atomic(&paper_dir(&app, &id)?.join(&name), text.as_bytes())
+}
+
+#[tauri::command]
+fn store_load_text(app: tauri::AppHandle, id: String, name: String) -> Result<Option<String>, String> {
+    if !STORE_FILES.contains(&name.as_str()) {
+        return Err("Unknown store file".to_string());
+    }
+    let path = paper_dir(&app, &id)?.join(&name);
+    if !path.is_file() {
+        return Ok(None);
+    }
+    fs::read_to_string(&path).map(Some).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn store_remove_paper(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    let dir = paper_dir(&app, &id)?;
+    if dir.is_dir() {
+        fs::remove_dir_all(&dir).map_err(|e| format!("Could not remove {}: {e}", dir.display()))?;
+    }
+    Ok(())
+}
+
+#[derive(Debug, Serialize)]
+struct HttpText {
+    status: u16,
+    body: String,
+}
+
+/// Metadata lookups run here, not in the webview: arXiv's API no longer sends CORS
+/// headers, so a browser fetch from the app window is blocked. Only these two
+/// endpoints are reachable through this command.
+#[tauri::command]
+async fn metadata_get(url: String) -> Result<HttpText, String> {
+    const ALLOWED: [&str; 2] = ["https://api.crossref.org/works/", "https://export.arxiv.org/api/query?"];
+    if !ALLOWED.iter().any(|p| url.starts_with(p)) {
+        return Err("This address is not allowed".to_string());
+    }
+    let client = reqwest::Client::builder()
+        .user_agent(concat!(
+            "Kuraso/",
+            env!("CARGO_PKG_VERSION"),
+            " (https://github.com/spoukidev/kuraso)"
+        ))
+        .timeout(std::time::Duration::from_secs(20))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let res = client.get(&url).send().await.map_err(|e| format!("Network error: {e}"))?;
+    let status = res.status().as_u16();
+    let body = res.text().await.map_err(|e| e.to_string())?;
+    Ok(HttpText { status, body })
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -253,7 +402,15 @@ fn main() {
             ai_delete_key,
             ai_run_chat,
             check_for_update,
-            install_update
+            install_update,
+            store_location,
+            store_list_pdfs,
+            store_save_pdf,
+            store_load_pdf,
+            store_save_text,
+            store_load_text,
+            store_remove_paper,
+            metadata_get
         ])
         .run(tauri::generate_context!())
         .expect("error while running Kuraso desktop application");

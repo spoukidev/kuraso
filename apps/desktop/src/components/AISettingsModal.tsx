@@ -4,6 +4,7 @@ import { CheckCircle2, Copy, ExternalLink, KeyRound, ShieldAlert, X } from "luci
 import { PROVIDER_PRESETS, type AISettings } from "../state/aiStore";
 import { isDesktopRuntime, runChat, saveProviderKey } from "../state/aiBridge";
 import { tr } from "../i18n/tr";
+import { useEscapeToClose } from "./useEscapeToClose";
 
 interface AISettingsModalProps {
   open: boolean;
@@ -29,6 +30,8 @@ export function AISettingsModal({
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  useEscapeToClose(open, onClose);
 
   if (!open) return null;
 

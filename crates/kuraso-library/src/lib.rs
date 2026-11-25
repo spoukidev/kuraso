@@ -228,8 +228,27 @@ impl Library {
         Ok(results)
     }
 
+    /// Folder of one paper. Slugs come from callers (including the webview), so anything
+    /// that could leave the papers folder ("..", separators, drive prefixes) is rejected.
+    fn paper_dir(&self, slug: &str) -> Result<PathBuf, LibraryError> {
+        let ok = !slug.is_empty()
+            && slug.len() <= 200
+            && slug != "."
+            && slug != ".."
+            && slug.chars().all(|c| c.is_alphanumeric() || matches!(c, '-' | '_' | '.'))
+            && !slug.starts_with('.');
+        if ok {
+            Ok(self.root.join(PAPERS_DIR).join(slug))
+        } else {
+            Err(LibraryError::Io(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("invalid paper slug: {slug:?}"),
+            )))
+        }
+    }
+
     pub fn read_paper_notes(&self, slug: &str) -> Result<String, LibraryError> {
-        let notes_path = self.root.join(PAPERS_DIR).join(slug).join("notes.md");
+        let notes_path = self.paper_dir(slug)?.join("notes.md");
         if notes_path.is_file() {
             Ok(fs::read_to_string(notes_path)?)
         } else {
@@ -238,17 +257,13 @@ impl Library {
     }
 
     pub fn save_paper_notes(&self, slug: &str, markdown: &str) -> Result<(), LibraryError> {
-        let notes_path = self.root.join(PAPERS_DIR).join(slug).join("notes.md");
+        let notes_path = self.paper_dir(slug)?.join("notes.md");
         write_atomic(&notes_path, markdown.as_bytes())?;
         Ok(())
     }
 
     pub fn load_annotations_raw(&self, slug: &str) -> Result<Option<String>, LibraryError> {
-        let path = self
-            .root
-            .join(PAPERS_DIR)
-            .join(slug)
-            .join("annotations.json");
+        let path = self.paper_dir(slug)?.join("annotations.json");
         if path.is_file() {
             Ok(Some(fs::read_to_string(path)?))
         } else {
@@ -257,17 +272,13 @@ impl Library {
     }
 
     pub fn save_annotations_raw(&self, slug: &str, json: &str) -> Result<(), LibraryError> {
-        let path = self
-            .root
-            .join(PAPERS_DIR)
-            .join(slug)
-            .join("annotations.json");
+        let path = self.paper_dir(slug)?.join("annotations.json");
         write_atomic(&path, json.as_bytes())?;
         Ok(())
     }
 
     pub fn load_structure_raw(&self, slug: &str) -> Result<Option<String>, LibraryError> {
-        let path = self.root.join(PAPERS_DIR).join(slug).join("structure.json");
+        let path = self.paper_dir(slug)?.join("structure.json");
         if path.is_file() {
             Ok(Some(fs::read_to_string(path)?))
         } else {
@@ -283,7 +294,7 @@ impl Library {
         json: &str,
         backup_version: Option<u32>,
     ) -> Result<(), LibraryError> {
-        let dir = self.root.join(PAPERS_DIR).join(slug);
+        let dir = self.paper_dir(slug)?;
         let path = dir.join("structure.json");
         if path.is_file() {
             if let Some(prev_ver) = backup_version {
@@ -439,6 +450,19 @@ mod tests {
             .unwrap()
             .as_nanos();
         std::env::temp_dir().join(format!("kuraso-test-{tag}-{secs}"))
+    }
+
+    #[test]
+    fn rejects_slugs_that_escape_the_papers_folder() {
+        let dir = temp_lib_dir("slug");
+        let lib = Library::open_or_init(dir.clone()).unwrap();
+        for bad in ["../evil", "..", "a/b", "a\\b", "", ".hidden", "C:evil"] {
+            assert!(lib.save_paper_notes(bad, "x").is_err(), "accepted {bad:?}");
+            assert!(lib.load_annotations_raw(bad).is_err(), "accepted {bad:?}");
+        }
+        assert!(lib.save_paper_notes("2017-vaswani-attention-abc123", "# ok").is_ok());
+        assert_eq!(lib.read_paper_notes("2017-vaswani-attention-abc123").unwrap(), "# ok");
+        let _ = fs::remove_dir_all(dir);
     }
 
     #[test]

@@ -20,16 +20,16 @@
 
 | Platform | Direct Download | Size |
 |---|---|---|
-| **Windows (64-bit)** | [**Download `.exe` Installer**](https://github.com/spoukidev/kuraso/releases/latest/download/Kuraso_2.2.0_x64-setup.exe) · [`.msi`](https://github.com/spoukidev/kuraso/releases/latest/download/Kuraso_2.2.0_x64_en-US.msi) | ~4.2 MB |
-| **macOS (Apple Silicon + Intel)** | [**Download Universal `.dmg`**](https://github.com/spoukidev/kuraso/releases/latest/download/Kuraso_2.2.0_universal.dmg) | ~11.4 MB |
-| **Linux (Ubuntu / Debian)** | [**Download `.deb`**](https://github.com/spoukidev/kuraso/releases/latest/download/Kuraso_2.2.0_amd64.deb) | ~6.3 MB |
-| **Linux (Fedora / RHEL)** | [**Download `.rpm`**](https://github.com/spoukidev/kuraso/releases/latest/download/Kuraso-2.2.0-1.x86_64.rpm) | ~6.3 MB |
-| **Linux (Universal)** | [**Download `.AppImage`**](https://github.com/spoukidev/kuraso/releases/latest/download/Kuraso_2.2.0_amd64.AppImage) | ~84 MB |
+| **Windows (64-bit)** | [**Download `.exe` Installer**](https://github.com/spoukidev/kuraso/releases/latest/download/Kuraso_2.3.0_x64-setup.exe) · [`.msi`](https://github.com/spoukidev/kuraso/releases/latest/download/Kuraso_2.3.0_x64_en-US.msi) | ~4.2 MB |
+| **macOS (Apple Silicon + Intel)** | [**Download Universal `.dmg`**](https://github.com/spoukidev/kuraso/releases/latest/download/Kuraso_2.3.0_universal.dmg) | ~11.4 MB |
+| **Linux (Ubuntu / Debian)** | [**Download `.deb`**](https://github.com/spoukidev/kuraso/releases/latest/download/Kuraso_2.3.0_amd64.deb) | ~6.3 MB |
+| **Linux (Fedora / RHEL)** | [**Download `.rpm`**](https://github.com/spoukidev/kuraso/releases/latest/download/Kuraso-2.3.0-1.x86_64.rpm) | ~6.3 MB |
+| **Linux (Universal)** | [**Download `.AppImage`**](https://github.com/spoukidev/kuraso/releases/latest/download/Kuraso_2.3.0_amd64.AppImage) | ~84 MB |
 
 > **First-time open note (unsigned open-source build):**
 > - **Windows:** If SmartScreen appears, click **More info** → **Run anyway**.
 > - **macOS:** Right-click `Kuraso.app` → **Open** → confirm **Open**.
-> - **Linux AppImage:** Run `chmod +x Kuraso_2.2.0_amd64.AppImage && ./Kuraso_2.2.0_amd64.AppImage`.
+> - **Linux AppImage:** Run `chmod +x Kuraso_2.3.0_amd64.AppImage && ./Kuraso_2.3.0_amd64.AppImage`.
 
 ---
 

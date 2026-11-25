@@ -1767,3 +1767,81 @@ button.kuraso-clean-pid:hover {
 .kuraso-shell[data-reader-fullscreen="true"] .kuraso-update-banner {
   display: none;
 }
+
+/* ── Markdown preview blocks ─────────────────────────────────────────── */
+.kuraso-md-preview p {
+  margin: 4px 0 8px;
+}
+.kuraso-md-preview ul,
+.kuraso-md-preview ol {
+  margin: 4px 0 8px;
+  padding-inline-start: 22px;
+}
+.kuraso-md-preview li {
+  margin-block: 2px;
+}
+.kuraso-md-preview h2 {
+  font-size: 1.08rem;
+  margin: 14px 0 6px;
+}
+.kuraso-md-preview h3,
+.kuraso-md-preview h4 {
+  font-size: 0.98rem;
+  margin: 12px 0 4px;
+}
+.kuraso-md-preview code {
+  font-family: var(--kuraso-font-mono);
+  font-size: 0.86em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background-color: var(--kuraso-bg-surface);
+  border: 1px solid var(--kuraso-border);
+}
+.kuraso-md-code {
+  margin: 8px 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  border-radius: var(--kuraso-radius-md);
+  background-color: var(--kuraso-bg-surface);
+  border: 1px solid var(--kuraso-border);
+}
+.kuraso-md-code code {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.kuraso-md-preview hr {
+  border: 0;
+  border-top: 1px solid var(--kuraso-border);
+  margin: 12px 0;
+}
+.kuraso-md-link {
+  color: var(--kuraso-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.kuraso-md-table-wrap {
+  overflow-x: auto;
+  margin: 8px 0;
+}
+.kuraso-md-table {
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+.kuraso-md-table th,
+.kuraso-md-table td {
+  border: 1px solid var(--kuraso-border);
+  padding: 4px 9px;
+  text-align: start;
+}
+.kuraso-md-table th {
+  font-family: var(--kuraso-font-ui);
+  font-weight: 700;
+  background-color: var(--kuraso-bg-surface);
+}
+
+.kuraso-icon-btn[data-danger="true"] {
+  color: #fff;
+  background-color: var(--kuraso-danger, #c7381f);
+  border-color: transparent;
+}
