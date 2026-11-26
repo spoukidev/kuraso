@@ -235,7 +235,9 @@ impl Library {
             && slug.len() <= 200
             && slug != "."
             && slug != ".."
-            && slug.chars().all(|c| c.is_alphanumeric() || matches!(c, '-' | '_' | '.'))
+            && slug
+                .chars()
+                .all(|c| c.is_alphanumeric() || matches!(c, '-' | '_' | '.'))
             && !slug.starts_with('.');
         if ok {
             Ok(self.root.join(PAPERS_DIR).join(slug))
@@ -460,8 +462,14 @@ mod tests {
             assert!(lib.save_paper_notes(bad, "x").is_err(), "accepted {bad:?}");
             assert!(lib.load_annotations_raw(bad).is_err(), "accepted {bad:?}");
         }
-        assert!(lib.save_paper_notes("2017-vaswani-attention-abc123", "# ok").is_ok());
-        assert_eq!(lib.read_paper_notes("2017-vaswani-attention-abc123").unwrap(), "# ok");
+        assert!(lib
+            .save_paper_notes("2017-vaswani-attention-abc123", "# ok")
+            .is_ok());
+        assert_eq!(
+            lib.read_paper_notes("2017-vaswani-attention-abc123")
+                .unwrap(),
+            "# ok"
+        );
         let _ = fs::remove_dir_all(dir);
     }
 

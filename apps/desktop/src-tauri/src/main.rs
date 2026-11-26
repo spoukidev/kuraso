@@ -231,7 +231,6 @@ async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-
 // ── Paper store ──────────────────────────────────────────────────────────────
 // Plain files the reader can always open: <Documents>/Kuraso/papers/<paper-id>/
 //   paper.pdf · notes.md · annotations.json
@@ -242,7 +241,9 @@ const STORE_FILES: [&str; 2] = ["notes.md", "annotations.json"];
 fn valid_paper_id(id: &str) -> Result<(), String> {
     let ok = !id.is_empty()
         && id.len() <= 80
-        && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
+        && id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
     if ok {
         Ok(())
     } else {
@@ -318,7 +319,12 @@ fn store_load_pdf(app: tauri::AppHandle, id: String) -> Result<tauri::ipc::Respo
 }
 
 #[tauri::command]
-fn store_save_text(app: tauri::AppHandle, id: String, name: String, text: String) -> Result<(), String> {
+fn store_save_text(
+    app: tauri::AppHandle,
+    id: String,
+    name: String,
+    text: String,
+) -> Result<(), String> {
     if !STORE_FILES.contains(&name.as_str()) {
         return Err("Unknown store file".to_string());
     }
@@ -326,7 +332,11 @@ fn store_save_text(app: tauri::AppHandle, id: String, name: String, text: String
 }
 
 #[tauri::command]
-fn store_load_text(app: tauri::AppHandle, id: String, name: String) -> Result<Option<String>, String> {
+fn store_load_text(
+    app: tauri::AppHandle,
+    id: String,
+    name: String,
+) -> Result<Option<String>, String> {
     if !STORE_FILES.contains(&name.as_str()) {
         return Err("Unknown store file".to_string());
     }
@@ -334,7 +344,9 @@ fn store_load_text(app: tauri::AppHandle, id: String, name: String) -> Result<Op
     if !path.is_file() {
         return Ok(None);
     }
-    fs::read_to_string(&path).map(Some).map_err(|e| e.to_string())
+    fs::read_to_string(&path)
+        .map(Some)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -357,7 +369,10 @@ struct HttpText {
 /// endpoints are reachable through this command.
 #[tauri::command]
 async fn metadata_get(url: String) -> Result<HttpText, String> {
-    const ALLOWED: [&str; 2] = ["https://api.crossref.org/works/", "https://export.arxiv.org/api/query?"];
+    const ALLOWED: [&str; 2] = [
+        "https://api.crossref.org/works/",
+        "https://export.arxiv.org/api/query?",
+    ];
     if !ALLOWED.iter().any(|p| url.starts_with(p)) {
         return Err("This address is not allowed".to_string());
     }
@@ -370,7 +385,11 @@ async fn metadata_get(url: String) -> Result<HttpText, String> {
         .timeout(std::time::Duration::from_secs(20))
         .build()
         .map_err(|e| e.to_string())?;
-    let res = client.get(&url).send().await.map_err(|e| format!("Network error: {e}"))?;
+    let res = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("Network error: {e}"))?;
     let status = res.status().as_u16();
     let body = res.text().await.map_err(|e| e.to_string())?;
     Ok(HttpText { status, body })
